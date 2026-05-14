@@ -1,30 +1,51 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:pdvmobile/main.dart';
+import 'package:pdvmobile/app/app.dart';
+import 'package:pdvmobile/core/env/app_config.dart';
+import 'package:pdvmobile/core/env/app_environment.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('PdvMobileApp', () {
+    testWidgets('renderiza a home inicial do PDV com identidade do app', (
+      WidgetTester tester,
+    ) async {
+      const config = AppConfig(
+        environment: AppEnvironment.dev,
+        apiBaseUrl: 'https://dev.api.pdvmobile.local',
+      );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      await tester.pumpWidget(const PdvMobileApp(config: config));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      expect(find.text('PDV Mobile'), findsOneWidget);
+      expect(find.text('Operacao de mesa pronta para Android'), findsOneWidget);
+      expect(find.byType(MaterialApp), findsOneWidget);
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    testWidgets('mostra fita de ambiente fora de producao', (
+      WidgetTester tester,
+    ) async {
+      const config = AppConfig(
+        environment: AppEnvironment.staging,
+        apiBaseUrl: 'https://staging.api.pdvmobile.local',
+      );
+
+      await tester.pumpWidget(const PdvMobileApp(config: config));
+
+      expect(find.byKey(const Key('environment-badge')), findsOneWidget);
+      expect(find.text('STAGING'), findsNWidgets(2));
+    });
+
+    testWidgets('nao mostra fita de ambiente em producao', (
+      WidgetTester tester,
+    ) async {
+      const config = AppConfig(
+        environment: AppEnvironment.production,
+        apiBaseUrl: 'https://api.pdvmobile.com',
+      );
+
+      await tester.pumpWidget(const PdvMobileApp(config: config));
+
+      expect(find.byKey(const Key('environment-badge')), findsNothing);
+    });
   });
 }
