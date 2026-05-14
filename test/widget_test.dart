@@ -3,10 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pdvmobile/app/app.dart';
 import 'package:pdvmobile/core/env/app_config.dart';
 import 'package:pdvmobile/core/env/app_environment.dart';
+import 'package:pdvmobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
 
 void main() {
   group('PdvMobileApp', () {
-    testWidgets('renderiza a home inicial do PDV com identidade do app', (
+    testWidgets('abre login quando nao existe sessao ativa', (
       WidgetTester tester,
     ) async {
       const config = AppConfig(
@@ -14,10 +16,15 @@ void main() {
         apiBaseUrl: 'https://dev.api.pdvmobile.local',
       );
 
-      await tester.pumpWidget(const PdvMobileApp(config: config));
+      await tester.pumpWidget(
+        PdvMobileApp(
+          config: config,
+          authRepository: _FakeAuthRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-      expect(find.text('PDV Mobile'), findsOneWidget);
-      expect(find.text('Operacao de mesa pronta para Android'), findsOneWidget);
+      expect(find.text('Entrar no PDV'), findsOneWidget);
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
@@ -29,7 +36,19 @@ void main() {
         apiBaseUrl: 'https://staging.api.pdvmobile.local',
       );
 
-      await tester.pumpWidget(const PdvMobileApp(config: config));
+      await tester.pumpWidget(
+        PdvMobileApp(
+          config: config,
+          authRepository: _FakeAuthRepository(
+            session: const AuthSession(
+              accessToken: 'token',
+              userName: 'Garcom Teste',
+              userEmail: 'garcom@pdv.com',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('environment-badge')), findsOneWidget);
       expect(find.text('STAGING'), findsNWidgets(2));
@@ -43,9 +62,42 @@ void main() {
         apiBaseUrl: 'https://api.pdvmobile.com',
       );
 
-      await tester.pumpWidget(const PdvMobileApp(config: config));
+      await tester.pumpWidget(
+        PdvMobileApp(
+          config: config,
+          authRepository: _FakeAuthRepository(
+            session: const AuthSession(
+              accessToken: 'token',
+              userName: 'Garcom Teste',
+              userEmail: 'garcom@pdv.com',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('environment-badge')), findsNothing);
     });
   });
+}
+
+final class _FakeAuthRepository implements AuthRepository {
+  _FakeAuthRepository({this.session});
+
+  final AuthSession? session;
+
+  @override
+  Future<AuthSession> login({
+    required String email,
+    required String password,
+  }) async {
+    return AuthSession(
+      accessToken: 'token',
+      userName: 'Garcom Teste',
+      userEmail: email,
+    );
+  }
+
+  @override
+  Future<AuthSession?> restoreSession() async => session;
 }
