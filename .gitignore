@@ -34,6 +34,29 @@ migrate_working_dir/
 /build/
 docsmd/
 
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.secrets
+secrets.*
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+firebase.json
+android/key.properties
+android/app/google-services.json
+android/app/src/**/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+lib/core/env/env.local.dart
+lib/core/env/env.secrets.dart
+*.mobileprovision
+
 # Symbolication related
 app.*.symbols
 
