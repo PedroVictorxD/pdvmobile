@@ -2,12 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:pdvmobile/core/error/app_exception.dart';
 
 abstract interface class ApiClient {
-  Future<Map<String, dynamic>> get(
+  Future<Object?> get(
     String path, {
     Map<String, String>? headers,
   });
 
-  Future<Map<String, dynamic>> post(
+  Future<Object?> post(
     String path, {
     Map<String, dynamic>? data,
     Map<String, String>? headers,
@@ -31,36 +31,36 @@ class DioApiClient implements ApiClient {
   final Dio _dio;
 
   @override
-  Future<Map<String, dynamic>> get(
+  Future<Object?> get(
     String path, {
     Map<String, String>? headers,
   }) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
+      final response = await _dio.get<Object?>(
         path,
         options: Options(headers: headers),
       );
 
-      return response.data ?? <String, dynamic>{};
+      return response.data;
     } on DioException catch (error) {
       throw _mapDioException(error);
     }
   }
 
   @override
-  Future<Map<String, dynamic>> post(
+  Future<Object?> post(
     String path, {
     Map<String, dynamic>? data,
     Map<String, String>? headers,
   }) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(
+      final response = await _dio.post<Object?>(
         path,
         data: data,
         options: Options(headers: headers),
       );
 
-      return response.data ?? <String, dynamic>{};
+      return response.data;
     } on DioException catch (error) {
       throw _mapDioException(error);
     }

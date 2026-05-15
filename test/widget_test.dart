@@ -5,6 +5,8 @@ import 'package:pdvmobile/core/env/app_config.dart';
 import 'package:pdvmobile/core/env/app_environment.dart';
 import 'package:pdvmobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
+import 'package:pdvmobile/features/stores/domain/repositories/store_repository.dart';
+import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 
 void main() {
   group('PdvMobileApp', () {
@@ -20,6 +22,7 @@ void main() {
         PdvMobileApp(
           config: config,
           authRepository: _FakeAuthRepository(),
+          storeRepository: _FakeStoreRepository(),
         ),
       );
       await tester.pumpAndSettle();
@@ -48,6 +51,7 @@ void main() {
               role: 'MERCHANT',
             ),
           ),
+          storeRepository: _FakeStoreRepository(selectedStoreId: 'store-1'),
         ),
       );
       await tester.pumpAndSettle();
@@ -76,6 +80,7 @@ void main() {
               role: 'MERCHANT',
             ),
           ),
+          storeRepository: _FakeStoreRepository(selectedStoreId: 'store-1'),
         ),
       );
       await tester.pumpAndSettle();
@@ -83,6 +88,32 @@ void main() {
       expect(find.byKey(const Key('environment-badge')), findsNothing);
     });
   });
+}
+
+final class _FakeStoreRepository implements StoreRepository {
+  _FakeStoreRepository({this.selectedStoreId});
+
+  final String? selectedStoreId;
+
+  @override
+  Future<List<StoreSummary>> listStores() async {
+    return const [
+      StoreSummary(
+        id: 'store-1',
+        name: 'Loja Centro',
+        slug: 'loja-centro',
+        isOpen: true,
+        tableMode: 'TAB',
+        acceptedPayments: ['PIX', 'CASH'],
+      ),
+    ];
+  }
+
+  @override
+  Future<String?> readSelectedStoreId() async => selectedStoreId;
+
+  @override
+  Future<void> saveSelectedStoreId(String storeId) async {}
 }
 
 final class _FakeAuthRepository implements AuthRepository {

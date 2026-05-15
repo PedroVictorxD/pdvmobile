@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/core/env/app_config.dart';
 import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
+import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 
 class PdvHomePage extends StatelessWidget {
   const PdvHomePage({
     super.key,
     required this.config,
     required this.session,
+    required this.store,
   });
 
   final AppConfig config;
   final AuthSession session;
+  final StoreSummary store;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +73,13 @@ class PdvHomePage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
+                store.name,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
                 'Base inicial pronta para ambientes, tema e evolucao do fluxo do garcom.',
                 style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
               ),
@@ -88,6 +98,8 @@ class PdvHomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(config.environmentLabel),
+                      const SizedBox(height: 8),
+                      Text('Loja ativa: ${store.slug}'),
                       const SizedBox(height: 8),
                       Text(
                         config.apiBaseUrl,

@@ -8,6 +8,7 @@ import 'package:pdvmobile/features/auth/presentation/auth_gate.dart';
 import 'package:pdvmobile/core/env/app_config.dart';
 import 'package:pdvmobile/core/env/app_environment.dart';
 import 'package:pdvmobile/features/home/presentation/pdv_home_page.dart';
+import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 
 void main() {
   group('AuthGate', () {
@@ -104,6 +105,14 @@ Widget _buildTestApp({required AuthRepository repository}) {
           apiBaseUrl: 'https://dev.api.pdvmobile.local',
         ),
         session: session,
+        store: const StoreSummary(
+          id: 'store-1',
+          name: 'Loja Centro',
+          slug: 'loja-centro',
+          isOpen: true,
+          tableMode: 'TAB',
+          acceptedPayments: ['PIX', 'CASH'],
+        ),
       ),
     ),
   );

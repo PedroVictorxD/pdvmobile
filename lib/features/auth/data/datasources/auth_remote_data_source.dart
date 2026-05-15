@@ -25,6 +25,9 @@ class HttpAuthRemoteDataSource implements AuthRemoteDataSource {
         'password': password,
       },
     );
+    if (response is! Map<String, dynamic>) {
+      throw const FormatException('Resposta invalida para login');
+    }
 
     return AuthSessionModel.fromLoginJson(response);
   }
