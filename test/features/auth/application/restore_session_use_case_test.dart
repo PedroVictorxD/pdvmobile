@@ -8,8 +8,10 @@ void main() {
     test('retorna a sessao restaurada do repositorio', () async {
       const expected = AuthSession(
         accessToken: 'token',
+        refreshToken: 'refresh-token',
         userName: 'Garcom Teste',
         userEmail: 'garcom@pdv.com',
+        role: 'MERCHANT',
       );
       final repository = _FakeAuthRepository(expected);
       final useCase = RestoreSessionUseCase(repository);

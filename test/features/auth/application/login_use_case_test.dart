@@ -18,6 +18,8 @@ void main() {
       expect(repository.lastEmail, 'garcom@pdv.com');
       expect(repository.lastPassword, '123456');
       expect(session.userName, 'Garcom Teste');
+      expect(session.refreshToken, 'refresh-token');
+      expect(session.role, 'MERCHANT');
     });
   });
 }
@@ -38,8 +40,10 @@ final class _FakeAuthRepository implements AuthRepository {
 
     return const AuthSession(
       accessToken: 'token',
+      refreshToken: 'refresh-token',
       userName: 'Garcom Teste',
       userEmail: 'garcom@pdv.com',
+      role: 'MERCHANT',
     );
   }
 
