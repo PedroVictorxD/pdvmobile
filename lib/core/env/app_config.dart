@@ -13,7 +13,7 @@ class AppConfig {
       ),
       apiBaseUrl: const String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'https://dev.api.pdvmobile.local',
+        defaultValue: 'https://facilmenu.com.br/api',
       ),
     );
   }

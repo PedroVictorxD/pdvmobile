@@ -31,8 +31,10 @@ void main() {
       final repository = _FakeAuthRepository(
         initialSession: const AuthSession(
           accessToken: 'token',
+          refreshToken: 'refresh-token',
           userName: 'Garcom Teste',
           userEmail: 'garcom@pdv.com',
+          role: 'MERCHANT',
         ),
       );
 
@@ -122,8 +124,10 @@ final class _FakeAuthRepository implements AuthRepository {
 
     return AuthSession(
       accessToken: 'token',
+      refreshToken: 'refresh-token',
       userName: 'Garcom Teste',
       userEmail: email,
+      role: 'MERCHANT',
     );
   }
 
