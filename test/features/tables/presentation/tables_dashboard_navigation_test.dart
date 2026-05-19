@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
+import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
@@ -111,6 +112,24 @@ void main() {
 
 final class _FakeTableRepository implements TableRepository {
   @override
+  Future<List<ClosedTableSessionSummary>> listClosedSessions(
+    String storeId,
+  ) async {
+    return const [
+      ClosedTableSessionSummary(
+        id: 'closed-1',
+        tableNumber: 5,
+        tableLabel: 'Balcao',
+        ticketNumber: '47003471',
+        total: 35.98,
+        paid: 35.98,
+        closedAt: '2026-05-15T02:27:00Z',
+        status: 'CLOSED',
+      ),
+    ];
+  }
+
+  @override
   Future<List<TableSessionSummary>> listOpenSessions(String storeId) async {
     return const [
       TableSessionSummary(
@@ -143,4 +162,10 @@ final class _FakeTableRepository implements TableRepository {
       ),
     ];
   }
+
+  @override
+  Future<void> reopenClosedSession({
+    required String storeId,
+    required String sessionId,
+  }) async {}
 }

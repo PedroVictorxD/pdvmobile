@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
+import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
@@ -34,7 +35,7 @@ enum _BottomNavItem { tables, orders, help, pix }
 class _TablesDashboardPageState extends State<TablesDashboardPage> {
   final _searchController = TextEditingController();
   _DashboardSection _section = _DashboardSection.tables;
-  late Future<List<TableDashboardEntry>> _dashboardFuture;
+  late Future<_DashboardData> _dashboardFuture;
 
   @override
   void initState() {
@@ -50,10 +51,12 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<TableDashboardEntry>>(
+    return FutureBuilder<_DashboardData>(
       future: _dashboardFuture,
       builder: (context, snapshot) {
-        final entries = snapshot.data ?? const <TableDashboardEntry>[];
+        final dashboardData = snapshot.data ?? const _DashboardData.empty();
+        final entries = dashboardData.entries;
+        final closedSessions = dashboardData.closedSessions;
         final pendingOrdersCount = entries.fold<int>(
           0,
           (sum, entry) => sum + (entry.session?.orderCount ?? 0),
@@ -92,7 +95,7 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
                       _SectionSwitcher(
                         selectedSection: _section,
                         openCount: entries.length,
-                        closedCount: null,
+                        closedCount: closedSessions.length,
                         onChanged: _updateSection,
                       ),
                     ],
@@ -101,7 +104,7 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _refresh,
-                    child: _buildBody(snapshot, entries),
+                    child: _buildBody(snapshot, entries, closedSessions),
                   ),
                 ),
               ],
@@ -113,8 +116,9 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
   }
 
   Widget _buildBody(
-    AsyncSnapshot<List<TableDashboardEntry>> snapshot,
+    AsyncSnapshot<_DashboardData> snapshot,
     List<TableDashboardEntry> entries,
+    List<ClosedTableSessionSummary> closedSessions,
   ) {
     if (snapshot.connectionState != ConnectionState.done) {
       return ListView(
@@ -141,15 +145,35 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
     }
 
     if (_section == _DashboardSection.closed) {
+      final filteredClosedSessions = _applyClosedFilters(closedSessions);
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
-        children: const [
-          _DashboardMessage(
-            title: 'Historico de mesas fechadas',
-            description:
-                'A lista detalhada de fechamentos, impressao e reabertura entra na proxima etapa da integracao.',
-          ),
+        children: [
+          if (closedSessions.isEmpty)
+            const _DashboardMessage(
+              title: 'Nenhum fechamento recente',
+              description:
+                  'As mesas fechadas do turno aparecem aqui para conferencia, caixa e reabertura.',
+            )
+          else if (filteredClosedSessions.isEmpty)
+            const _DashboardMessage(
+              title: 'Nenhum fechamento encontrado',
+              description:
+                  'Ajuste a busca para localizar outra mesa ou pedido fechado.',
+            )
+          else
+            ...filteredClosedSessions.map(
+              (session) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _ClosedSessionCard(
+                  session: session,
+                  onPrint: () => _showPrintSnackBar(session),
+                  onCashier: () => _showCashierSnackBar(session),
+                  onReopen: () => _reopenClosedSession(session),
+                ),
+              ),
+            ),
         ],
       );
     }
@@ -233,27 +257,56 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
     }).toList();
   }
 
-  Future<List<TableDashboardEntry>> _loadDashboard() async {
+  List<ClosedTableSessionSummary> _applyClosedFilters(
+    List<ClosedTableSessionSummary> sessions,
+  ) {
+    final query = _searchController.text.trim().toLowerCase();
+    return sessions.where((session) {
+      if (query.isEmpty) {
+        return true;
+      }
+
+      return session.tableNumber.toString().contains(query) ||
+          session.tableLabel.toLowerCase().contains(query) ||
+          session.ticketNumber.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  Future<_DashboardData> _loadDashboard() async {
     final results = await Future.wait([
       widget.tableRepository.listTables(widget.store.id),
       widget.tableRepository.listOpenSessions(widget.store.id),
+      widget.tableRepository.listClosedSessions(widget.store.id),
     ]);
 
     final tables = results[0] as List<StoreTable>;
     final sessions = results[1] as List<TableSessionSummary>;
+    final closedSessions = results[2] as List<ClosedTableSessionSummary>;
     final sessionsByTable = {
       for (final session in sessions) _sessionKey(session): session,
     };
 
-    return tables
-        .map(
-          (table) => TableDashboardEntry(
-            table: table,
-            session: sessionsByTable[_tableKey(table)],
-          ),
-        )
-        .toList()
-      ..sort((left, right) => left.table.number.compareTo(right.table.number));
+    final entries =
+        tables
+            .map(
+              (table) => TableDashboardEntry(
+                table: table,
+                session: sessionsByTable[_tableKey(table)],
+              ),
+            )
+            .toList()
+          ..sort(
+            (left, right) => left.table.number.compareTo(right.table.number),
+          );
+
+    final sortedClosedSessions = List<ClosedTableSessionSummary>.of(
+      closedSessions,
+    )..sort((left, right) => right.closedAt.compareTo(left.closedAt));
+
+    return _DashboardData(
+      entries: entries,
+      closedSessions: sortedClosedSessions,
+    );
   }
 
   Future<void> _refresh() async {
@@ -340,6 +393,41 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
     );
   }
 
+  void _showPrintSnackBar(ClosedTableSessionSummary session) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'A impressao do pedido #${session.ticketNumber} entra na proxima etapa.',
+        ),
+      ),
+    );
+  }
+
+  void _showCashierSnackBar(ClosedTableSessionSummary session) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'A conferencia de caixa do pedido #${session.ticketNumber} entra na proxima etapa.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reopenClosedSession(ClosedTableSessionSummary session) async {
+    await widget.tableRepository.reopenClosedSession(
+      storeId: widget.store.id,
+      sessionId: session.id,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _dashboardFuture = _loadDashboard();
+    });
+  }
+
   String _sessionKey(TableSessionSummary session) {
     return session.tableNumber.toString();
   }
@@ -347,6 +435,17 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
   String _tableKey(StoreTable table) {
     return table.number.toString();
   }
+}
+
+class _DashboardData {
+  const _DashboardData({required this.entries, required this.closedSessions});
+
+  const _DashboardData.empty()
+    : entries = const <TableDashboardEntry>[],
+      closedSessions = const <ClosedTableSessionSummary>[];
+
+  final List<TableDashboardEntry> entries;
+  final List<ClosedTableSessionSummary> closedSessions;
 }
 
 class _DashboardHeader extends StatelessWidget {
@@ -838,6 +937,135 @@ class _TableCard extends StatelessWidget {
   }
 }
 
+class _ClosedSessionCard extends StatelessWidget {
+  const _ClosedSessionCard({
+    required this.session,
+    required this.onPrint,
+    required this.onCashier,
+    required this.onReopen,
+  });
+
+  final ClosedTableSessionSummary session;
+  final VoidCallback onPrint;
+  final VoidCallback onCashier;
+  final VoidCallback onReopen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        session.tableLabel.isEmpty
+                            ? 'Mesa ${session.tableNumber}'
+                            : session.tableLabel,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: const Color(0xFF172033),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '#${session.ticketNumber}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF657285),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _formatClosedDate(session.closedAt),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF172033),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_formatCurrency(session.total)} / ${_formatCurrency(session.paid)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF657285),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      session.paid >= session.total
+                          ? '100% Fechada'
+                          : _closedStatusLabel(session.status),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF16B8D0),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onPrint,
+                    icon: const Icon(Icons.print_rounded, size: 18),
+                    label: const Text('Imprimir'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onCashier,
+                    icon: const Icon(Icons.point_of_sale_rounded, size: 18),
+                    label: const Text('Caixa'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onReopen,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Reabrir'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DashboardBottomBar extends StatelessWidget {
   const _DashboardBottomBar({
     required this.selectedItem,
@@ -1092,6 +1320,30 @@ String _sessionStatusLabel(String status) {
     default:
       return 'Aberta';
   }
+}
+
+String _closedStatusLabel(String status) {
+  switch (status) {
+    case 'REOPENED':
+      return 'Reaberta';
+    default:
+      return 'Fechada';
+  }
+}
+
+String _formatClosedDate(String rawValue) {
+  final date = DateTime.tryParse(rawValue);
+  if (date == null) {
+    return rawValue;
+  }
+
+  final localDate = date.toLocal();
+  final day = localDate.day.toString().padLeft(2, '0');
+  final month = localDate.month.toString().padLeft(2, '0');
+  final year = (localDate.year % 100).toString().padLeft(2, '0');
+  final hour = localDate.hour.toString().padLeft(2, '0');
+  final minute = localDate.minute.toString().padLeft(2, '0');
+  return '$day/$month/$year $hour:$minute';
 }
 
 String _formatCurrency(double value) {

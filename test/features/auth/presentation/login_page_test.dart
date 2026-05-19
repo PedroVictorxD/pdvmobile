@@ -9,6 +9,7 @@ import 'package:pdvmobile/core/env/app_config.dart';
 import 'package:pdvmobile/core/env/app_environment.dart';
 import 'package:pdvmobile/features/home/presentation/pdv_home_page.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
+import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
@@ -142,6 +143,13 @@ final class _FakeAuthRepository implements AuthRepository {
 
 final class _FakeTableRepository implements TableRepository {
   @override
+  Future<List<ClosedTableSessionSummary>> listClosedSessions(
+    String storeId,
+  ) async {
+    return const [];
+  }
+
+  @override
   Future<List<TableSessionSummary>> listOpenSessions(String storeId) async {
     return const [];
   }
@@ -150,4 +158,10 @@ final class _FakeTableRepository implements TableRepository {
   Future<List<StoreTable>> listTables(String storeId) async {
     return const [];
   }
+
+  @override
+  Future<void> reopenClosedSession({
+    required String storeId,
+    required String sessionId,
+  }) async {}
 }

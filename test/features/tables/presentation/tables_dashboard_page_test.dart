@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
+import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
@@ -44,7 +45,7 @@ void main() {
       expect(find.text('Nenhuma mesa cadastrada'), findsOneWidget);
     });
 
-    testWidgets('mostra placeholder da aba fechadas', (tester) async {
+    testWidgets('mostra historico e acoes na aba fechadas', (tester) async {
       final repository = _FakeTableRepository();
 
       await tester.pumpWidget(_buildApp(repository));
@@ -53,7 +54,28 @@ void main() {
       await tester.tap(find.text('Fechadas'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Historico de mesas fechadas'), findsOneWidget);
+      expect(find.text('Balcao'), findsOneWidget);
+      expect(find.text('#47003471'), findsOneWidget);
+      expect(find.text('Imprimir'), findsOneWidget);
+      expect(find.text('Caixa'), findsOneWidget);
+      expect(find.text('Reabrir'), findsOneWidget);
+    });
+
+    testWidgets('reabre comanda fechada pela aba fechadas', (tester) async {
+      final repository = _FakeTableRepository();
+
+      await tester.pumpWidget(_buildApp(repository));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Fechadas'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Reabrir'));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(repository.reopenedSessionId, 'closed-1');
+      expect(find.text('#47003471'), findsNothing);
     });
   });
 }
@@ -87,6 +109,19 @@ final class _FakeTableRepository implements TableRepository {
   _FakeTableRepository.empty() : returnEmpty = true;
 
   final bool returnEmpty;
+  String? reopenedSessionId;
+  final List<ClosedTableSessionSummary> _closedSessions = [
+    const ClosedTableSessionSummary(
+      id: 'closed-1',
+      tableNumber: 5,
+      tableLabel: 'Balcao',
+      ticketNumber: '47003471',
+      total: 35.98,
+      paid: 35.98,
+      closedAt: '2026-05-15T02:27:00Z',
+      status: 'CLOSED',
+    ),
+  ];
 
   @override
   Future<List<TableSessionSummary>> listOpenSessions(String storeId) async {
@@ -104,6 +139,17 @@ final class _FakeTableRepository implements TableRepository {
         orderCount: 2,
       ),
     ];
+  }
+
+  @override
+  Future<List<ClosedTableSessionSummary>> listClosedSessions(
+    String storeId,
+  ) async {
+    if (returnEmpty) {
+      return const [];
+    }
+
+    return List<ClosedTableSessionSummary>.of(_closedSessions);
   }
 
   @override
@@ -128,5 +174,14 @@ final class _FakeTableRepository implements TableRepository {
         qrCodeToken: 'qr-2',
       ),
     ];
+  }
+
+  @override
+  Future<void> reopenClosedSession({
+    required String storeId,
+    required String sessionId,
+  }) async {
+    reopenedSessionId = sessionId;
+    _closedSessions.removeWhere((session) => session.id == sessionId);
   }
 }
