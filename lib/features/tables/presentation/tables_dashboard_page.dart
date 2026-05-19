@@ -6,6 +6,7 @@ import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
+import 'package:pdvmobile/features/tables/presentation/help_center_page.dart';
 import 'package:pdvmobile/features/tables/presentation/orders_queue_page.dart';
 import 'package:pdvmobile/features/tables/presentation/pix_payments_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_details_page.dart';
@@ -67,7 +68,8 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
           bottomNavigationBar: _DashboardBottomBar(
             selectedItem: _BottomNavItem.tables,
             pendingOrdersCount: pendingOrdersCount,
-            onSelected: (item) => _handleBottomNavigation(item, entries),
+            onSelected: (item) =>
+                _handleBottomNavigation(item, entries, closedSessions),
           ),
           body: SafeArea(
             child: Column(
@@ -344,15 +346,21 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
   Future<void> _handleBottomNavigation(
     _BottomNavItem item,
     List<TableDashboardEntry> entries,
+    List<ClosedTableSessionSummary> closedSessions,
   ) async {
     if (item == _BottomNavItem.tables) {
       return;
     }
 
     if (item == _BottomNavItem.help) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A area de ajuda entra na proxima etapa da navegacao.'),
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => HelpCenterPage(
+            store: widget.store,
+            operatorName: widget.session.userName,
+            entries: entries,
+            closedSessions: closedSessions,
+          ),
         ),
       );
       return;

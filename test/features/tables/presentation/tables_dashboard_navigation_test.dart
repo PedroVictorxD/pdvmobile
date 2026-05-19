@@ -6,6 +6,7 @@ import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_s
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
+import 'package:pdvmobile/features/tables/presentation/help_center_page.dart';
 import 'package:pdvmobile/features/tables/presentation/orders_queue_page.dart';
 import 'package:pdvmobile/features/tables/presentation/pix_payments_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_details_page.dart';
@@ -107,6 +108,38 @@ void main() {
 
     expect(find.byType(PixPaymentsPage), findsOneWidget);
     expect(find.text('Checar agora'), findsOneWidget);
+  });
+
+  testWidgets('abre ajuda pela barra inferior', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TablesDashboardPage(
+          session: const AuthSession(
+            accessToken: 'token',
+            refreshToken: 'refresh',
+            userName: 'Operador',
+            userEmail: 'teste@pdv.com',
+            role: 'MERCHANT',
+          ),
+          store: const StoreSummary(
+            id: 'store-1',
+            name: 'Acai do Teste',
+            slug: 'acai-do-teste',
+            isOpen: true,
+            tableMode: 'TAB',
+            acceptedPayments: ['PIX'],
+          ),
+          tableRepository: _FakeTableRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ajuda'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HelpCenterPage), findsOneWidget);
+    expect(find.text('Chamar gerente'), findsOneWidget);
   });
 }
 
