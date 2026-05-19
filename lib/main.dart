@@ -9,10 +9,12 @@ import 'package:pdvmobile/features/auth/data/repositories/auth_repository_impl.d
 import 'package:pdvmobile/features/stores/data/datasources/store_local_data_source.dart';
 import 'package:pdvmobile/features/stores/data/datasources/store_remote_data_source.dart';
 import 'package:pdvmobile/features/stores/data/repositories/store_repository_impl.dart';
+import 'package:pdvmobile/features/tables/data/datasources/table_remote_data_source.dart';
+import 'package:pdvmobile/features/tables/data/repositories/table_repository_impl.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
+  
   final config = AppConfig.fromEnvironment();
   final apiClient = DioApiClient(baseUrl: config.apiBaseUrl);
   final keyValueStore = FlutterSecureKeyValueStore();
@@ -26,12 +28,17 @@ void main() {
     localDataSource: KeyValueStoreLocalDataSource(keyValueStore),
     authLocalDataSource: authLocalDataSource,
   );
+  final tableRepository = TableRepositoryImpl(
+    remoteDataSource: HttpTableRemoteDataSource(apiClient),
+    authLocalDataSource: authLocalDataSource,
+  );
 
   runApp(
     PdvMobileApp(
       config: config,
       authRepository: authRepository,
       storeRepository: storeRepository,
+      tableRepository: tableRepository,
     ),
   );
 }

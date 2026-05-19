@@ -9,6 +9,9 @@ import 'package:pdvmobile/core/env/app_config.dart';
 import 'package:pdvmobile/core/env/app_environment.dart';
 import 'package:pdvmobile/features/home/presentation/pdv_home_page.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
+import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
+import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
 
 void main() {
   group('AuthGate', () {
@@ -17,9 +20,7 @@ void main() {
     ) async {
       final repository = _FakeAuthRepository();
 
-      await tester.pumpWidget(
-        _buildTestApp(repository: repository),
-      );
+      await tester.pumpWidget(_buildTestApp(repository: repository));
       await tester.pumpAndSettle();
 
       expect(find.text('Entrar no PDV'), findsOneWidget);
@@ -39,13 +40,11 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        _buildTestApp(repository: repository),
-      );
+      await tester.pumpWidget(_buildTestApp(repository: repository));
       await tester.pumpAndSettle();
 
       expect(find.byType(PdvHomePage), findsOneWidget);
-      expect(find.text('Operacao de mesa pronta para Android'), findsOneWidget);
+      expect(find.text('Loja Centro'), findsOneWidget);
     });
 
     testWidgets('valida credenciais antes de tentar login', (
@@ -53,9 +52,7 @@ void main() {
     ) async {
       final repository = _FakeAuthRepository();
 
-      await tester.pumpWidget(
-        _buildTestApp(repository: repository),
-      );
+      await tester.pumpWidget(_buildTestApp(repository: repository));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Entrar'));
@@ -71,9 +68,7 @@ void main() {
     ) async {
       final repository = _FakeAuthRepository();
 
-      await tester.pumpWidget(
-        _buildTestApp(repository: repository),
-      );
+      await tester.pumpWidget(_buildTestApp(repository: repository));
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -113,6 +108,7 @@ Widget _buildTestApp({required AuthRepository repository}) {
           tableMode: 'TAB',
           acceptedPayments: ['PIX', 'CASH'],
         ),
+        tableRepository: _FakeTableRepository(),
       ),
     ),
   );
@@ -142,4 +138,16 @@ final class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<AuthSession?> restoreSession() async => initialSession;
+}
+
+final class _FakeTableRepository implements TableRepository {
+  @override
+  Future<List<TableSessionSummary>> listOpenSessions(String storeId) async {
+    return const [];
+  }
+
+  @override
+  Future<List<StoreTable>> listTables(String storeId) async {
+    return const [];
+  }
 }

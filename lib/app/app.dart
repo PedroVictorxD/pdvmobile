@@ -8,6 +8,7 @@ import 'package:pdvmobile/features/auth/presentation/auth_gate.dart';
 import 'package:pdvmobile/features/home/presentation/pdv_home_page.dart';
 import 'package:pdvmobile/features/stores/domain/repositories/store_repository.dart';
 import 'package:pdvmobile/features/stores/presentation/store_selection_gate.dart';
+import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
 
 class PdvMobileApp extends StatelessWidget {
   const PdvMobileApp({
@@ -15,11 +16,13 @@ class PdvMobileApp extends StatelessWidget {
     required this.config,
     required this.authRepository,
     required this.storeRepository,
+    required this.tableRepository,
   });
 
   final AppConfig config;
   final AuthRepository authRepository;
   final StoreRepository storeRepository;
+  final TableRepository tableRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +39,7 @@ class PdvMobileApp extends StatelessWidget {
             config: config,
             session: session,
             store: store,
+            tableRepository: tableRepository,
           ),
         ),
       ),

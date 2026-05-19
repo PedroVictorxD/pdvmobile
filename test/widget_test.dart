@@ -7,6 +7,9 @@ import 'package:pdvmobile/features/auth/domain/repositories/auth_repository.dart
 import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
 import 'package:pdvmobile/features/stores/domain/repositories/store_repository.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
+import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
+import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
 
 void main() {
   group('PdvMobileApp', () {
@@ -23,6 +26,7 @@ void main() {
           config: config,
           authRepository: _FakeAuthRepository(),
           storeRepository: _FakeStoreRepository(),
+          tableRepository: _FakeTableRepository(),
         ),
       );
       await tester.pumpAndSettle();
@@ -52,12 +56,13 @@ void main() {
             ),
           ),
           storeRepository: _FakeStoreRepository(selectedStoreId: 'store-1'),
+          tableRepository: _FakeTableRepository(),
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('environment-badge')), findsOneWidget);
-      expect(find.text('STAGING'), findsNWidgets(2));
+      expect(find.text('STAGING'), findsOneWidget);
     });
 
     testWidgets('nao mostra fita de ambiente em producao', (
@@ -81,6 +86,7 @@ void main() {
             ),
           ),
           storeRepository: _FakeStoreRepository(selectedStoreId: 'store-1'),
+          tableRepository: _FakeTableRepository(),
         ),
       );
       await tester.pumpAndSettle();
@@ -137,4 +143,16 @@ final class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<AuthSession?> restoreSession() async => session;
+}
+
+final class _FakeTableRepository implements TableRepository {
+  @override
+  Future<List<TableSessionSummary>> listOpenSessions(String storeId) async {
+    return const [];
+  }
+
+  @override
+  Future<List<StoreTable>> listTables(String storeId) async {
+    return const [];
+  }
 }
