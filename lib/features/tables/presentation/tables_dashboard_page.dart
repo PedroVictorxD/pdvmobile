@@ -5,6 +5,8 @@ import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
+import 'package:pdvmobile/features/tables/presentation/orders_queue_page.dart';
+import 'package:pdvmobile/features/tables/presentation/pix_payments_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_details_page.dart';
 
 class TablesDashboardPage extends StatefulWidget {
@@ -62,7 +64,7 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
           bottomNavigationBar: _DashboardBottomBar(
             selectedItem: _BottomNavItem.tables,
             pendingOrdersCount: pendingOrdersCount,
-            onSelected: _handleBottomNavigation,
+            onSelected: (item) => _handleBottomNavigation(item, entries),
           ),
           body: SafeArea(
             child: Column(
@@ -286,24 +288,39 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
     });
   }
 
-  void _handleBottomNavigation(_BottomNavItem item) {
+  Future<void> _handleBottomNavigation(
+    _BottomNavItem item,
+    List<TableDashboardEntry> entries,
+  ) async {
     if (item == _BottomNavItem.tables) {
       return;
     }
 
-    final message = switch (item) {
-      _BottomNavItem.orders =>
-        'A fila de pedidos entra na proxima etapa da navegacao.',
-      _BottomNavItem.help =>
-        'A area de ajuda entra na proxima etapa da navegacao.',
-      _BottomNavItem.pix =>
-        'A conferenca de pagamentos Pix entra na proxima etapa da navegacao.',
-      _BottomNavItem.tables => '',
-    };
+    if (item == _BottomNavItem.help) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A area de ajuda entra na proxima etapa da navegacao.'),
+        ),
+      );
+      return;
+    }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => switch (item) {
+          _BottomNavItem.orders => OrdersQueuePage(
+            store: widget.store,
+            entries: entries,
+          ),
+          _BottomNavItem.pix => PixPaymentsPage(
+            store: widget.store,
+            entries: entries,
+          ),
+          _BottomNavItem.help ||
+          _BottomNavItem.tables => const SizedBox.shrink(),
+        },
+      ),
+    );
   }
 
   void _showHomeSnackBar() {
