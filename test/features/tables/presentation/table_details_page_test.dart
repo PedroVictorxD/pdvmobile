@@ -5,6 +5,7 @@ import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/presentation/table_details_page.dart';
+import 'package:pdvmobile/features/tables/presentation/table_session_page.dart';
 
 void main() {
   group('TableDetailsPage', () {
@@ -75,6 +76,67 @@ void main() {
       expect(find.text('Mesa disponivel'), findsOneWidget);
       expect(find.text('Abrir comanda'), findsOneWidget);
       expect(find.text('Escanear QR da mesa'), findsOneWidget);
+    });
+
+    testWidgets('abre comanda ao tocar em ver pedidos', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableDetailsPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: const TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 76.98,
+                orderCount: 3,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ver pedidos'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TableSessionPage), findsOneWidget);
+      expect(find.text('Comanda da mesa'), findsOneWidget);
+    });
+
+    testWidgets('abre comanda ao tocar em abrir comanda', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableDetailsPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-1',
+                number: 1,
+                label: 'Varanda',
+                status: 'AVAILABLE',
+                qrCodeToken: 'qr-1',
+              ),
+              session: null,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Abrir comanda'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TableSessionPage), findsOneWidget);
+      expect(find.text('Nova comanda'), findsOneWidget);
     });
   });
 }

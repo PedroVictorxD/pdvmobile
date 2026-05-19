@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/presentation/table_session_page.dart';
 
 class TableDetailsPage extends StatelessWidget {
   const TableDetailsPage({super.key, required this.store, required this.entry});
@@ -121,10 +122,7 @@ class TableDetailsPage extends StatelessWidget {
               _ActionButton(
                 label: 'Ver pedidos',
                 icon: Icons.receipt_long_rounded,
-                onTap: () => _showComingSoon(
-                  context,
-                  'A lista detalhada de pedidos entra na proxima etapa.',
-                ),
+                onTap: () => _openSession(context),
               ),
               const SizedBox(height: 12),
               _ActionButton(
@@ -139,10 +137,7 @@ class TableDetailsPage extends StatelessWidget {
               _ActionButton(
                 label: 'Abrir comanda',
                 icon: Icons.add_card_rounded,
-                onTap: () => _showComingSoon(
-                  context,
-                  'A abertura da comanda entra na proxima etapa.',
-                ),
+                onTap: () => _openSession(context),
               ),
               const SizedBox(height: 12),
               _ActionButton(
@@ -164,6 +159,14 @@ class TableDetailsPage extends StatelessWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _openSession(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TableSessionPage(store: store, entry: entry),
+      ),
+    );
   }
 }
 
