@@ -6,9 +6,11 @@ import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
+import 'package:pdvmobile/features/tables/presentation/cashier_review_page.dart';
 import 'package:pdvmobile/features/tables/presentation/help_center_page.dart';
 import 'package:pdvmobile/features/tables/presentation/orders_queue_page.dart';
 import 'package:pdvmobile/features/tables/presentation/pix_payments_page.dart';
+import 'package:pdvmobile/features/tables/presentation/receipt_preview_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_details_page.dart';
 
 class TablesDashboardPage extends StatefulWidget {
@@ -170,8 +172,8 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _ClosedSessionCard(
                   session: session,
-                  onPrint: () => _showPrintSnackBar(session),
-                  onCashier: () => _showCashierSnackBar(session),
+                  onPrint: () => _openReceiptPreview(session),
+                  onCashier: () => _openCashierReview(session),
                   onReopen: () => _reopenClosedSession(session),
                 ),
               ),
@@ -401,22 +403,20 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
     );
   }
 
-  void _showPrintSnackBar(ClosedTableSessionSummary session) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'A impressao do pedido #${session.ticketNumber} entra na proxima etapa.',
-        ),
+  Future<void> _openReceiptPreview(ClosedTableSessionSummary session) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            ReceiptPreviewPage(store: widget.store, session: session),
       ),
     );
   }
 
-  void _showCashierSnackBar(ClosedTableSessionSummary session) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'A conferencia de caixa do pedido #${session.ticketNumber} entra na proxima etapa.',
-        ),
+  Future<void> _openCashierReview(ClosedTableSessionSummary session) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            CashierReviewPage(store: widget.store, session: session),
       ),
     );
   }

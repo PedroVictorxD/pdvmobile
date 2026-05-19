@@ -6,9 +6,11 @@ import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_s
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
+import 'package:pdvmobile/features/tables/presentation/cashier_review_page.dart';
 import 'package:pdvmobile/features/tables/presentation/help_center_page.dart';
 import 'package:pdvmobile/features/tables/presentation/orders_queue_page.dart';
 import 'package:pdvmobile/features/tables/presentation/pix_payments_page.dart';
+import 'package:pdvmobile/features/tables/presentation/receipt_preview_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_details_page.dart';
 import 'package:pdvmobile/features/tables/presentation/tables_dashboard_page.dart';
 
@@ -140,6 +142,74 @@ void main() {
 
     expect(find.byType(HelpCenterPage), findsOneWidget);
     expect(find.text('Chamar gerente'), findsOneWidget);
+  });
+
+  testWidgets('abre caixa a partir da aba fechadas', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TablesDashboardPage(
+          session: const AuthSession(
+            accessToken: 'token',
+            refreshToken: 'refresh',
+            userName: 'Operador',
+            userEmail: 'teste@pdv.com',
+            role: 'MERCHANT',
+          ),
+          store: const StoreSummary(
+            id: 'store-1',
+            name: 'Acai do Teste',
+            slug: 'acai-do-teste',
+            isOpen: true,
+            tableMode: 'TAB',
+            acceptedPayments: ['PIX'],
+          ),
+          tableRepository: _FakeTableRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fechadas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Caixa'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CashierReviewPage), findsOneWidget);
+    expect(find.text('#47003471'), findsOneWidget);
+  });
+
+  testWidgets('abre impressao a partir da aba fechadas', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TablesDashboardPage(
+          session: const AuthSession(
+            accessToken: 'token',
+            refreshToken: 'refresh',
+            userName: 'Operador',
+            userEmail: 'teste@pdv.com',
+            role: 'MERCHANT',
+          ),
+          store: const StoreSummary(
+            id: 'store-1',
+            name: 'Acai do Teste',
+            slug: 'acai-do-teste',
+            isOpen: true,
+            tableMode: 'TAB',
+            acceptedPayments: ['PIX'],
+          ),
+          tableRepository: _FakeTableRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fechadas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Imprimir'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ReceiptPreviewPage), findsOneWidget);
+    expect(find.text('Enviar para impressora'), findsOneWidget);
   });
 }
 
