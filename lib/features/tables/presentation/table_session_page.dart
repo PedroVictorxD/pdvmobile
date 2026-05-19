@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/presentation/table_menu_page.dart';
 
 class TableSessionPage extends StatelessWidget {
   const TableSessionPage({super.key, required this.store, required this.entry});
@@ -110,10 +111,7 @@ class TableSessionPage extends StatelessWidget {
                 label: 'Adicionar item',
                 description: 'Lancamento rapido no pedido da mesa.',
                 icon: Icons.add_shopping_cart_rounded,
-                onTap: () => _showComingSoon(
-                  context,
-                  'A inclusao de itens entra na proxima etapa.',
-                ),
+                onTap: () => _openMenu(context),
               ),
               const SizedBox(height: 12),
               _SessionActionCard(
@@ -156,6 +154,14 @@ class TableSessionPage extends StatelessWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _openMenu(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TableMenuPage(store: store, entry: entry),
+      ),
+    );
   }
 }
 
