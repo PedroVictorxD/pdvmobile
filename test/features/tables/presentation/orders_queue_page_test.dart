@@ -72,6 +72,8 @@ void main() {
     expect(find.text('Suco de Caja 300ml'), findsNothing);
     expect(find.text('Pendente'), findsOneWidget);
     expect(find.text('Em preparo'), findsOneWidget);
+    expect(find.text('Preparar'), findsOneWidget);
+    expect(find.text('Entregar'), findsOneWidget);
   });
 
   testWidgets('mostra itens entregues ao trocar a aba', (tester) async {
@@ -125,6 +127,105 @@ void main() {
     expect(find.text('Suco de Caja 300ml'), findsOneWidget);
     expect(find.text('Entregue'), findsOneWidget);
     expect(find.text('Coca-Cola 350ml'), findsNothing);
+  });
+
+  testWidgets('permite avancar item pendente para em preparo na fila', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OrdersQueuePage(
+          store: _store,
+          entries: const [
+            TableDashboardEntry(
+              table: StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 76.98,
+                orderCount: 1,
+                items: [
+                  TableSessionLineItem(
+                    name: 'Coca-Cola 350ml',
+                    quantity: 1,
+                    unitPrice: 7.5,
+                    note: 'Sem gelo',
+                    status: TableSessionLineItemStatus.pending,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advance_queue_item_0')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Em preparo'), findsWidgets);
+    expect(find.text('Entregar'), findsOneWidget);
+  });
+
+  testWidgets('permite entregar item em preparo e move para aba entregues', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OrdersQueuePage(
+          store: _store,
+          entries: const [
+            TableDashboardEntry(
+              table: StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 76.98,
+                orderCount: 1,
+                items: [
+                  TableSessionLineItem(
+                    name: 'Coxinha Crocante',
+                    quantity: 1,
+                    unitPrice: 12,
+                    note: 'Frango cremoso',
+                    status: TableSessionLineItemStatus.preparing,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advance_queue_item_0')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Coxinha Crocante'), findsNothing);
+
+    await tester.tap(find.text('Entregues'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Coxinha Crocante'), findsOneWidget);
+    expect(find.text('Entregue'), findsOneWidget);
   });
 }
 

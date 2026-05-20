@@ -18,4 +18,24 @@ class TableSessionSummary {
   final double total;
   final int orderCount;
   final List<TableSessionLineItem> items;
+
+  TableSessionSummary copyWith({
+    String? id,
+    int? tableNumber,
+    String? tableLabel,
+    String? status,
+    double? total,
+    int? orderCount,
+    List<TableSessionLineItem>? items,
+  }) {
+    return TableSessionSummary(
+      id: id ?? this.id,
+      tableNumber: tableNumber ?? this.tableNumber,
+      tableLabel: tableLabel ?? this.tableLabel,
+      status: status ?? this.status,
+      total: total ?? this.total,
+      orderCount: orderCount ?? this.orderCount,
+      items: items ?? this.items,
+    );
+  }
 }

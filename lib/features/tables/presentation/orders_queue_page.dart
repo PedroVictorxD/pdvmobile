@@ -19,14 +19,25 @@ class OrdersQueuePage extends StatefulWidget {
 
 class _OrdersQueuePageState extends State<OrdersQueuePage> {
   bool _showDelivered = false;
+  late List<TableDashboardEntry> _entries;
+
+  @override
+  void initState() {
+    super.initState();
+    _entries = widget.entries;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final queueItems = widget.entries
+    final queueItems = _entries
         .where((entry) => entry.session != null)
         .expand(
-          (entry) => entry.session!.items.map(
-            (item) => _OrderQueueItem(entry: entry, item: item),
+          (entry) => entry.session!.items.asMap().entries.map(
+            (itemEntry) => _OrderQueueItem(
+              entry: entry,
+              itemIndex: itemEntry.key,
+              item: itemEntry.value,
+            ),
           ),
         )
         .where(
@@ -72,11 +83,60 @@ class _OrdersQueuePageState extends State<OrdersQueuePage> {
             if (queueItems.isEmpty)
               _OrdersEmptyState(showDelivered: _showDelivered)
             else
-              ...queueItems.map((queueItem) => _OrderItemCard(item: queueItem)),
+              ...queueItems.map(
+                (queueItem) => _OrderItemCard(
+                  item: queueItem,
+                  onAdvance:
+                      queueItem.item.status ==
+                          TableSessionLineItemStatus.delivered
+                      ? null
+                      : () => _advanceItem(queueItem),
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  void _advanceItem(_OrderQueueItem queueItem) {
+    final session = queueItem.entry.session;
+    if (session == null) {
+      return;
+    }
+
+    final nextStatus = switch (queueItem.item.status) {
+      TableSessionLineItemStatus.pending =>
+        TableSessionLineItemStatus.preparing,
+      TableSessionLineItemStatus.preparing =>
+        TableSessionLineItemStatus.delivered,
+      TableSessionLineItemStatus.delivered =>
+        TableSessionLineItemStatus.delivered,
+    };
+
+    final updatedEntries = [..._entries];
+    final entryIndex = updatedEntries.indexOf(queueItem.entry);
+    if (entryIndex < 0) {
+      return;
+    }
+
+    final updatedItems = [...session.items];
+    updatedItems[queueItem.itemIndex] = TableSessionLineItem(
+      name: queueItem.item.name,
+      quantity: queueItem.item.quantity,
+      unitPrice: queueItem.item.unitPrice,
+      note: queueItem.item.note,
+      status: nextStatus,
+    );
+
+    updatedEntries[entryIndex] = TableDashboardEntry(
+      table: queueItem.entry.table,
+      session: session.copyWith(items: updatedItems),
+    );
+
+    setState(() {
+      _entries = updatedEntries;
+    });
   }
 }
 
@@ -153,9 +213,10 @@ class _QueueTab extends StatelessWidget {
 }
 
 class _OrderItemCard extends StatelessWidget {
-  const _OrderItemCard({required this.item});
+  const _OrderItemCard({required this.item, required this.onAdvance});
 
   final _OrderQueueItem item;
+  final VoidCallback? onAdvance;
 
   @override
   Widget build(BuildContext context) {
@@ -232,17 +293,40 @@ class _OrderItemCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                _statusLabel(item.item.status),
-                style: TextStyle(
-                  color: item.item.status == TableSessionLineItemStatus.pending
-                      ? const Color(0xFFD94E60)
-                      : item.item.status == TableSessionLineItemStatus.preparing
-                      ? const Color(0xFFF29F05)
-                      : const Color(0xFF16B8D0),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _statusLabel(item.item.status),
+                    style: TextStyle(
+                      color:
+                          item.item.status == TableSessionLineItemStatus.pending
+                          ? const Color(0xFFD94E60)
+                          : item.item.status ==
+                                TableSessionLineItemStatus.preparing
+                          ? const Color(0xFFF29F05)
+                          : const Color(0xFF16B8D0),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (onAdvance != null)
+                    FilledButton(
+                      key: ValueKey('advance_queue_item_${item.itemIndex}'),
+                      onPressed: onAdvance,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        item.item.status == TableSessionLineItemStatus.pending
+                            ? 'Preparar'
+                            : 'Entregar',
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
@@ -281,9 +365,14 @@ class _OrdersEmptyState extends StatelessWidget {
 }
 
 class _OrderQueueItem {
-  const _OrderQueueItem({required this.entry, required this.item});
+  const _OrderQueueItem({
+    required this.entry,
+    required this.itemIndex,
+    required this.item,
+  });
 
   final TableDashboardEntry entry;
+  final int itemIndex;
   final TableSessionLineItem item;
 }
 
