@@ -45,6 +45,65 @@ void main() {
       expect(session?.userEmail, 'merchant@test.com');
       expect(session?.refreshToken, 'refresh-token');
     });
+
+    test('permite login local de desenvolvimento quando configurado', () async {
+      final remote = _FakeAuthRemoteDataSource();
+      final local = _FakeAuthLocalDataSource();
+      final repository = AuthRepositoryImpl(
+        remoteDataSource: remote,
+        localDataSource: local,
+        developmentBypass: const DevelopmentLoginBypass(
+          email: 'garcon@teste.com',
+          password: '123456',
+          session: AuthSessionModel(
+            accessToken: 'dev-access-token',
+            refreshToken: 'dev-refresh-token',
+            userName: 'Garcom Teste',
+            userEmail: 'garcon@teste.com',
+            role: 'MERCHANT',
+          ),
+        ),
+      );
+
+      final session = await repository.login(
+        email: 'garcon@teste.com',
+        password: '123456',
+      );
+
+      expect(remote.lastEmail, isNull);
+      expect(remote.lastPassword, isNull);
+      expect(local.savedSession?.userEmail, 'garcon@teste.com');
+      expect(session.accessToken, 'dev-access-token');
+    });
+
+    test('mantem login remoto para outras credenciais', () async {
+      final remote = _FakeAuthRemoteDataSource();
+      final local = _FakeAuthLocalDataSource();
+      final repository = AuthRepositoryImpl(
+        remoteDataSource: remote,
+        localDataSource: local,
+        developmentBypass: const DevelopmentLoginBypass(
+          email: 'garcon@teste.com',
+          password: '123456',
+          session: AuthSessionModel(
+            accessToken: 'dev-access-token',
+            refreshToken: 'dev-refresh-token',
+            userName: 'Garcom Teste',
+            userEmail: 'garcon@teste.com',
+            role: 'MERCHANT',
+          ),
+        ),
+      );
+
+      final session = await repository.login(
+        email: 'merchant@test.com',
+        password: '123456',
+      );
+
+      expect(remote.lastEmail, 'merchant@test.com');
+      expect(remote.lastPassword, '123456');
+      expect(session.accessToken, 'access-token');
+    });
   });
 }
 
@@ -82,7 +141,8 @@ final class _FakeAuthLocalDataSource implements AuthLocalDataSource {
   }
 
   @override
-  Future<AuthSessionModel?> readSession() async => initialSession ?? savedSession;
+  Future<AuthSessionModel?> readSession() async =>
+      initialSession ?? savedSession;
 
   @override
   Future<void> saveSession(AuthSessionModel session) async {
