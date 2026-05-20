@@ -74,7 +74,7 @@ void main() {
       expect(find.text('Nova comanda'), findsOneWidget);
       expect(find.text('Mesa 1'), findsOneWidget);
       expect(find.text('Abrir atendimento'), findsOneWidget);
-      expect(find.text('Escanear QR da mesa'), findsOneWidget);
+      expect(find.text('Escanear QR da mesa'), findsNothing);
     });
 
     testWidgets('abre fluxo de atendimento ao tocar em abrir atendimento', (

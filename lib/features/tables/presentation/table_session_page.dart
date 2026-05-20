@@ -129,27 +129,11 @@ class TableSessionPage extends StatelessWidget {
                 icon: Icons.play_circle_fill_rounded,
                 onTap: () => _openService(context),
               ),
-              const SizedBox(height: 12),
-              _SessionActionCard(
-                label: 'Escanear QR da mesa',
-                description: 'Valida identificacao fisica da mesa.',
-                icon: Icons.qr_code_scanner_rounded,
-                onTap: () => _showComingSoon(
-                  context,
-                  'A leitura do QR da mesa entra na proxima etapa.',
-                ),
-              ),
             ],
           ],
         ),
       ),
     );
-  }
-
-  void _showComingSoon(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openMenu(BuildContext context) async {
