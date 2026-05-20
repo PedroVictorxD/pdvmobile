@@ -44,6 +44,58 @@ void main() {
         expect(remote.lastAccessToken, 'access-token');
       },
     );
+
+    test(
+      'retorna mesas e sessoes demo quando a sessao usa token local de desenvolvimento',
+      () async {
+        final remote = _FakeTableRemoteDataSource();
+        final repository = TableRepositoryImpl(
+          remoteDataSource: remote,
+          authLocalDataSource: _FakeAuthLocalDataSource.dev(),
+        );
+
+        final tables = await repository.listTables('demo-store-1');
+        final sessions = await repository.listOpenSessions('demo-store-1');
+        final closedSessions = await repository.listClosedSessions(
+          'demo-store-1',
+        );
+
+        expect(tables, isNotEmpty);
+        expect(tables.first.label, 'Varanda');
+        expect(sessions, isNotEmpty);
+        expect(sessions.first.items, isNotEmpty);
+        expect(closedSessions, isNotEmpty);
+        expect(remote.lastAccessToken, isNull);
+      },
+    );
+
+    test('reabre sessao demo sem chamar a API remota', () async {
+      final remote = _FakeTableRemoteDataSource();
+      final repository = TableRepositoryImpl(
+        remoteDataSource: remote,
+        authLocalDataSource: _FakeAuthLocalDataSource.dev(),
+      );
+
+      await repository.reopenClosedSession(
+        storeId: 'demo-store-1',
+        sessionId: 'closed-demo-1',
+      );
+
+      final closedSessions = await repository.listClosedSessions(
+        'demo-store-1',
+      );
+      final openSessions = await repository.listOpenSessions('demo-store-1');
+
+      expect(
+        closedSessions.where((session) => session.id == 'closed-demo-1'),
+        isEmpty,
+      );
+      expect(
+        openSessions.any((session) => session.id == 'reopened-closed-demo-1'),
+        isTrue,
+      );
+      expect(remote.reopenedSessionId, isNull);
+    });
   });
 }
 
@@ -101,20 +153,34 @@ final class _FakeTableRemoteDataSource implements TableRemoteDataSource {
 }
 
 final class _FakeAuthLocalDataSource implements AuthLocalDataSource {
+  _FakeAuthLocalDataSource() : _session = _defaultSession;
+
+  _FakeAuthLocalDataSource.dev() : _session = _developmentSession;
+
+  final AuthSessionModel _session;
+
   @override
   Future<void> clearSession() async {}
 
   @override
-  Future<AuthSessionModel?> readSession() async {
-    return const AuthSessionModel(
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-      userName: 'Merchant',
-      userEmail: 'merchant@test.com',
-      role: 'MERCHANT',
-    );
-  }
+  Future<AuthSessionModel?> readSession() async => _session;
 
   @override
   Future<void> saveSession(AuthSessionModel session) async {}
 }
+
+const _defaultSession = AuthSessionModel(
+  accessToken: 'access-token',
+  refreshToken: 'refresh-token',
+  userName: 'Merchant',
+  userEmail: 'merchant@test.com',
+  role: 'MERCHANT',
+);
+
+const _developmentSession = AuthSessionModel(
+  accessToken: 'dev-garcom-token',
+  refreshToken: 'dev-garcom-refresh',
+  userName: 'Garcom Teste',
+  userEmail: 'garcon@teste.com',
+  role: 'MERCHANT',
+);

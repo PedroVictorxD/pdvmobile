@@ -35,14 +35,35 @@ void main() {
       expect(local.savedStoreId, 'store-1');
       expect(selectedId, 'store-1');
     });
+
+    test(
+      'retorna lojas demo quando a sessao usa token local de desenvolvimento',
+      () async {
+        final remote = _FakeStoreRemoteDataSource();
+        final repository = StoreRepositoryImpl(
+          remoteDataSource: remote,
+          localDataSource: _FakeStoreLocalDataSource(),
+          authLocalDataSource: _FakeAuthLocalDataSource.dev(),
+        );
+
+        final stores = await repository.listStores();
+
+        expect(stores, isNotEmpty);
+        expect(stores.first.name, 'Loja Demo Centro');
+        expect(remote.callCount, 0);
+      },
+    );
   });
 }
 
 final class _FakeStoreRemoteDataSource implements StoreRemoteDataSource {
+  int callCount = 0;
+
   @override
   Future<List<StoreSummaryModel>> listStores({
     required String accessToken,
   }) async {
+    callCount += 1;
     return const [
       StoreSummaryModel(
         id: 'store-1',
@@ -69,20 +90,34 @@ final class _FakeStoreLocalDataSource implements StoreLocalDataSource {
 }
 
 final class _FakeAuthLocalDataSource implements AuthLocalDataSource {
+  _FakeAuthLocalDataSource() : _session = _defaultSession;
+
+  _FakeAuthLocalDataSource.dev() : _session = _developmentSession;
+
+  final AuthSessionModel _session;
+
   @override
   Future<void> clearSession() async {}
 
   @override
-  Future<AuthSessionModel?> readSession() async {
-    return const AuthSessionModel(
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-      userName: 'Merchant',
-      userEmail: 'merchant@test.com',
-      role: 'MERCHANT',
-    );
-  }
+  Future<AuthSessionModel?> readSession() async => _session;
 
   @override
   Future<void> saveSession(AuthSessionModel session) async {}
 }
+
+const _defaultSession = AuthSessionModel(
+  accessToken: 'access-token',
+  refreshToken: 'refresh-token',
+  userName: 'Merchant',
+  userEmail: 'merchant@test.com',
+  role: 'MERCHANT',
+);
+
+const _developmentSession = AuthSessionModel(
+  accessToken: 'dev-garcom-token',
+  refreshToken: 'dev-garcom-refresh',
+  userName: 'Garcom Teste',
+  userEmail: 'garcon@teste.com',
+  role: 'MERCHANT',
+);
