@@ -154,7 +154,10 @@ class _TableSessionPageState extends State<TableSessionPage> {
                   (entry) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _SessionLineItemCard(
+                      itemIndex: entry.key,
                       item: entry.value,
+                      onDecrease: () => _decreaseItem(entry.key),
+                      onIncrease: () => _increaseItem(entry.key),
                       onCancel: () => _cancelItem(entry.key),
                     ),
                   ),
@@ -214,18 +217,78 @@ class _TableSessionPageState extends State<TableSessionPage> {
     }
 
     final currentItem = session.items[itemIndex];
-    final items = [...session.items];
+    final items = [...session.items]..removeAt(itemIndex);
 
-    if (currentItem.quantity > 1) {
-      items[itemIndex] = TableSessionLineItem(
-        name: currentItem.name,
-        quantity: currentItem.quantity - 1,
-        unitPrice: currentItem.unitPrice,
-        note: currentItem.note,
+    setState(() {
+      _entry = TableDashboardEntry(
+        table: _entry.table,
+        session: TableSessionSummary(
+          id: session.id,
+          tableNumber: session.tableNumber,
+          tableLabel: session.tableLabel,
+          status: session.status,
+          total: (session.total - currentItem.totalPrice).clamp(
+            0,
+            double.infinity,
+          ),
+          orderCount: session.orderCount - currentItem.quantity < 0
+              ? 0
+              : session.orderCount - currentItem.quantity,
+          items: items,
+        ),
       );
-    } else {
-      items.removeAt(itemIndex);
+    });
+  }
+
+  void _increaseItem(int itemIndex) {
+    final session = _entry.session;
+    if (session == null || itemIndex >= session.items.length) {
+      return;
     }
+
+    final currentItem = session.items[itemIndex];
+    final items = [...session.items];
+    items[itemIndex] = TableSessionLineItem(
+      name: currentItem.name,
+      quantity: currentItem.quantity + 1,
+      unitPrice: currentItem.unitPrice,
+      note: currentItem.note,
+    );
+
+    setState(() {
+      _entry = TableDashboardEntry(
+        table: _entry.table,
+        session: TableSessionSummary(
+          id: session.id,
+          tableNumber: session.tableNumber,
+          tableLabel: session.tableLabel,
+          status: session.status,
+          total: session.total + currentItem.unitPrice,
+          orderCount: session.orderCount + 1,
+          items: items,
+        ),
+      );
+    });
+  }
+
+  void _decreaseItem(int itemIndex) {
+    final session = _entry.session;
+    if (session == null || itemIndex >= session.items.length) {
+      return;
+    }
+
+    final currentItem = session.items[itemIndex];
+    if (currentItem.quantity <= 1) {
+      return;
+    }
+
+    final items = [...session.items];
+    items[itemIndex] = TableSessionLineItem(
+      name: currentItem.name,
+      quantity: currentItem.quantity - 1,
+      unitPrice: currentItem.unitPrice,
+      note: currentItem.note,
+    );
 
     setState(() {
       _entry = TableDashboardEntry(
@@ -316,9 +379,18 @@ class _SessionActionCard extends StatelessWidget {
 }
 
 class _SessionLineItemCard extends StatelessWidget {
-  const _SessionLineItemCard({required this.item, required this.onCancel});
+  const _SessionLineItemCard({
+    required this.itemIndex,
+    required this.item,
+    required this.onDecrease,
+    required this.onIncrease,
+    required this.onCancel,
+  });
 
+  final int itemIndex;
   final TableSessionLineItem item;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
   final VoidCallback onCancel;
 
   @override
@@ -373,7 +445,53 @@ class _SessionLineItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            TextButton(onPressed: onCancel, child: const Text('Cancelar')),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: ValueKey('decrease_item_$itemIndex'),
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
+                      onPressed: item.quantity > 1 ? onDecrease : null,
+                      icon: const Icon(Icons.remove_circle_outline_rounded),
+                    ),
+                    Text(
+                      '${item.quantity}',
+                      style: const TextStyle(
+                        color: Color(0xFF172033),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    IconButton(
+                      key: ValueKey('increase_item_$itemIndex'),
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
+                      onPressed: onIncrease,
+                      icon: const Icon(Icons.add_circle_rounded),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: onCancel,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Cancelar'),
+                ),
+              ],
+            ),
           ],
         ),
       ),

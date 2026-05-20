@@ -186,6 +186,11 @@ void main() {
     testWidgets('permite cancelar um item ja lancado na comanda', (
       tester,
     ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(
         MaterialApp(
           home: TableSessionPage(
@@ -222,15 +227,112 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Coca-Cola 350ml'), findsOneWidget);
-      expect(find.text('Cancelar'), findsOneWidget);
+      final cancelButton = find.widgetWithText(TextButton, 'Cancelar');
+      expect(cancelButton, findsOneWidget);
 
-      await tester.tap(find.text('Cancelar'));
+      await tester.scrollUntilVisible(
+        cancelButton,
+        120,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.tap(cancelButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Coca-Cola 350ml'), findsNothing);
       expect(find.text('0 pedidos'), findsOneWidget);
       expect(find.text('R\$ 0,00'), findsOneWidget);
       expect(find.text('Nenhum item lancado ainda.'), findsOneWidget);
+    });
+
+    testWidgets('permite aumentar a quantidade de um item lancado', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableSessionPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: const TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 7.5,
+                orderCount: 1,
+                items: [
+                  TableSessionLineItem(
+                    name: 'Coca-Cola 350ml',
+                    quantity: 1,
+                    unitPrice: 7.5,
+                    note: 'Sem acucar',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('increase_item_0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Qtd 2 • R\$ 15,00'), findsOneWidget);
+      expect(find.text('2 pedidos'), findsOneWidget);
+      expect(find.text('R\$ 15,00'), findsWidgets);
+    });
+
+    testWidgets('permite reduzir a quantidade de um item sem remover a linha', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableSessionPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: const TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 15,
+                orderCount: 2,
+                items: [
+                  TableSessionLineItem(
+                    name: 'Coca-Cola 350ml',
+                    quantity: 2,
+                    unitPrice: 7.5,
+                    note: 'Sem acucar',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('decrease_item_0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Coca-Cola 350ml'), findsOneWidget);
+      expect(find.text('Qtd 1 • R\$ 7,50'), findsOneWidget);
+      expect(find.text('1 pedidos'), findsOneWidget);
+      expect(find.text('R\$ 7,50'), findsWidgets);
     });
 
     testWidgets('abre fechamento ao tocar em fechar conta', (tester) async {
