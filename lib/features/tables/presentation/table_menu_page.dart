@@ -157,6 +157,7 @@ class _TableMenuPageState extends State<TableMenuPage> {
           quantity: 1,
           unitPrice: item.price,
           note: note,
+          status: TableSessionLineItemStatus.pending,
         ),
       );
     }

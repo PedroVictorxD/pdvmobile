@@ -149,19 +149,56 @@ class _TableSessionPageState extends State<TableSessionPage> {
               const SizedBox(height: 12),
               if (session.items.isEmpty)
                 const _EmptyItemsCard()
-              else
-                ...session.items.asMap().entries.map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _SessionLineItemCard(
-                      itemIndex: entry.key,
-                      item: entry.value,
-                      onDecrease: () => _decreaseItem(entry.key),
-                      onIncrease: () => _increaseItem(entry.key),
-                      onCancel: () => _cancelItem(entry.key),
-                    ),
-                  ),
+              else ...[
+                _StatusSection(
+                  title: 'Pendentes',
+                  entries: session.items
+                      .asMap()
+                      .entries
+                      .where(
+                        (entry) =>
+                            entry.value.status ==
+                            TableSessionLineItemStatus.pending,
+                      )
+                      .toList(),
+                  onDecrease: _decreaseItem,
+                  onIncrease: _increaseItem,
+                  onAdvance: _advanceItemStatus,
+                  onCancel: _cancelItem,
                 ),
+                _StatusSection(
+                  title: 'Em preparo',
+                  entries: session.items
+                      .asMap()
+                      .entries
+                      .where(
+                        (entry) =>
+                            entry.value.status ==
+                            TableSessionLineItemStatus.preparing,
+                      )
+                      .toList(),
+                  onDecrease: _decreaseItem,
+                  onIncrease: _increaseItem,
+                  onAdvance: _advanceItemStatus,
+                  onCancel: _cancelItem,
+                ),
+                _StatusSection(
+                  title: 'Entregues',
+                  entries: session.items
+                      .asMap()
+                      .entries
+                      .where(
+                        (entry) =>
+                            entry.value.status ==
+                            TableSessionLineItemStatus.delivered,
+                      )
+                      .toList(),
+                  onDecrease: _decreaseItem,
+                  onIncrease: _increaseItem,
+                  onAdvance: _advanceItemStatus,
+                  onCancel: _cancelItem,
+                ),
+              ],
             ] else ...[
               _SessionActionCard(
                 label: 'Abrir atendimento',
@@ -253,6 +290,7 @@ class _TableSessionPageState extends State<TableSessionPage> {
       quantity: currentItem.quantity + 1,
       unitPrice: currentItem.unitPrice,
       note: currentItem.note,
+      status: currentItem.status,
     );
 
     setState(() {
@@ -288,6 +326,7 @@ class _TableSessionPageState extends State<TableSessionPage> {
       quantity: currentItem.quantity - 1,
       unitPrice: currentItem.unitPrice,
       note: currentItem.note,
+      status: currentItem.status,
     );
 
     setState(() {
@@ -303,6 +342,51 @@ class _TableSessionPageState extends State<TableSessionPage> {
             double.infinity,
           ),
           orderCount: session.orderCount > 0 ? session.orderCount - 1 : 0,
+          items: items,
+        ),
+      );
+    });
+  }
+
+  void _advanceItemStatus(int itemIndex) {
+    final session = _entry.session;
+    if (session == null || itemIndex >= session.items.length) {
+      return;
+    }
+
+    final currentItem = session.items[itemIndex];
+    if (currentItem.status == TableSessionLineItemStatus.delivered) {
+      return;
+    }
+
+    final nextStatus = switch (currentItem.status) {
+      TableSessionLineItemStatus.pending =>
+        TableSessionLineItemStatus.preparing,
+      TableSessionLineItemStatus.preparing =>
+        TableSessionLineItemStatus.delivered,
+      TableSessionLineItemStatus.delivered =>
+        TableSessionLineItemStatus.delivered,
+    };
+
+    final items = [...session.items];
+    items[itemIndex] = TableSessionLineItem(
+      name: currentItem.name,
+      quantity: currentItem.quantity,
+      unitPrice: currentItem.unitPrice,
+      note: currentItem.note,
+      status: nextStatus,
+    );
+
+    setState(() {
+      _entry = TableDashboardEntry(
+        table: _entry.table,
+        session: TableSessionSummary(
+          id: session.id,
+          tableNumber: session.tableNumber,
+          tableLabel: session.tableLabel,
+          status: session.status,
+          total: session.total,
+          orderCount: session.orderCount,
           items: items,
         ),
       );
@@ -384,6 +468,7 @@ class _SessionLineItemCard extends StatelessWidget {
     required this.item,
     required this.onDecrease,
     required this.onIncrease,
+    required this.onAdvance,
     required this.onCancel,
   });
 
@@ -391,6 +476,7 @@ class _SessionLineItemCard extends StatelessWidget {
   final TableSessionLineItem item;
   final VoidCallback onDecrease;
   final VoidCallback onIncrease;
+  final VoidCallback onAdvance;
   final VoidCallback onCancel;
 
   @override
@@ -441,6 +527,14 @@ class _SessionLineItemCard extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _statusLabel(item.status),
+                    style: const TextStyle(
+                      color: Color(0xFF16B8D0),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -481,6 +575,30 @@ class _SessionLineItemCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 4),
+                if (item.status != TableSessionLineItemStatus.delivered)
+                  FilledButton(
+                    key: ValueKey('advance_item_$itemIndex'),
+                    onPressed: onAdvance,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      item.status == TableSessionLineItemStatus.pending
+                          ? 'Preparar'
+                          : 'Entregar',
+                    ),
+                  )
+                else
+                  const Text(
+                    'Item entregue',
+                    style: TextStyle(
+                      color: Color(0xFF16B8D0),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 TextButton(
                   onPressed: onCancel,
                   style: TextButton.styleFrom(
@@ -495,6 +613,59 @@ class _SessionLineItemCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatusSection extends StatelessWidget {
+  const _StatusSection({
+    required this.title,
+    required this.entries,
+    required this.onDecrease,
+    required this.onIncrease,
+    required this.onAdvance,
+    required this.onCancel,
+  });
+
+  final String title;
+  final List<MapEntry<int, TableSessionLineItem>> entries;
+  final ValueChanged<int> onDecrease;
+  final ValueChanged<int> onIncrease;
+  final ValueChanged<int> onAdvance;
+  final ValueChanged<int> onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF657285),
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _SessionLineItemCard(
+              itemIndex: entry.key,
+              item: entry.value,
+              onDecrease: () => onDecrease(entry.key),
+              onIncrease: () => onIncrease(entry.key),
+              onAdvance: () => onAdvance(entry.key),
+              onCancel: () => onCancel(entry.key),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -526,4 +697,12 @@ class _EmptyItemsCard extends StatelessWidget {
 String _formatCurrency(double value) {
   final formatted = value.toStringAsFixed(2).replaceAll('.', ',');
   return 'R\$ $formatted';
+}
+
+String _statusLabel(TableSessionLineItemStatus status) {
+  return switch (status) {
+    TableSessionLineItemStatus.pending => 'Pendente',
+    TableSessionLineItemStatus.preparing => 'Em preparo',
+    TableSessionLineItemStatus.delivered => 'Entregue',
+  };
 }

@@ -181,6 +181,7 @@ void main() {
       expect(find.byType(TableMenuPage), findsNothing);
       expect(find.text('4 pedidos'), findsOneWidget);
       expect(find.text('R\$ 84,48'), findsOneWidget);
+      expect(find.text('Pendentes'), findsOneWidget);
       expect(find.text('Coca-Cola 350ml'), findsOneWidget);
       expect(find.text('Qtd 1 • R\$ 7,50'), findsOneWidget);
     });
@@ -225,6 +226,66 @@ void main() {
       expect(find.byType(TableMenuPage), findsNothing);
       expect(find.text('Coca-Cola 350ml'), findsOneWidget);
       expect(find.text('Sem gelo'), findsOneWidget);
+      expect(find.text('Pendentes'), findsOneWidget);
+    });
+
+    testWidgets('permite avancar item de pendente ate entregue', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableSessionPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: const TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 7.5,
+                orderCount: 1,
+                items: [
+                  TableSessionLineItem(
+                    name: 'Coca-Cola 350ml',
+                    quantity: 1,
+                    unitPrice: 7.5,
+                    note: 'Sem acucar',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pendentes'), findsOneWidget);
+      expect(find.text('Preparar'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('advance_item_0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Em preparo'), findsWidgets);
+      expect(find.text('Entregar'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('advance_item_0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Entregues'), findsOneWidget);
+      expect(find.text('Item entregue'), findsOneWidget);
     });
 
     testWidgets('permite cancelar um item ja lancado na comanda', (
@@ -291,6 +352,11 @@ void main() {
     testWidgets('permite aumentar a quantidade de um item lancado', (
       tester,
     ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(
         MaterialApp(
           home: TableSessionPage(
@@ -336,6 +402,11 @@ void main() {
     testWidgets('permite reduzir a quantidade de um item sem remover a linha', (
       tester,
     ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(
         MaterialApp(
           home: TableSessionPage(
