@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 
 class TableMenuPage extends StatefulWidget {
   const TableMenuPage({super.key, required this.store, required this.entry});
@@ -103,8 +104,34 @@ class _TableMenuPageState extends State<TableMenuPage> {
                   .toList(),
             ),
             const SizedBox(height: 18),
-            ...filteredItems.map((item) => _MenuItemCard(item: item)),
+            ...filteredItems.map(
+              (item) => _MenuItemCard(
+                item: item,
+                onAdd: () => _addItem(context, item),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _addItem(BuildContext context, _MenuItem item) {
+    final session = widget.entry.session;
+    if (session == null) {
+      return;
+    }
+
+    Navigator.of(context).pop(
+      TableDashboardEntry(
+        table: widget.entry.table,
+        session: TableSessionSummary(
+          id: session.id,
+          tableNumber: session.tableNumber,
+          tableLabel: session.tableLabel,
+          status: session.status,
+          total: session.total + item.price,
+          orderCount: session.orderCount + 1,
         ),
       ),
     );
@@ -112,9 +139,10 @@ class _TableMenuPageState extends State<TableMenuPage> {
 }
 
 class _MenuItemCard extends StatelessWidget {
-  const _MenuItemCard({required this.item});
+  const _MenuItemCard({required this.item, required this.onAdd});
 
   final _MenuItem item;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -168,21 +196,10 @@ class _MenuItemCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton(
-                onPressed: () => _showComingSoon(context, item.name),
-                child: const Text('Adicionar'),
-              ),
+              FilledButton(onPressed: onAdd, child: const Text('Adicionar')),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showComingSoon(BuildContext context, String itemName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('O lancamento de $itemName entra na proxima etapa.'),
       ),
     );
   }

@@ -140,6 +140,45 @@ void main() {
       expect(find.text('Adicionar itens'), findsOneWidget);
     });
 
+    testWidgets('atualiza a comanda ao lancar um item do catalogo', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableSessionPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: const TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 76.98,
+                orderCount: 3,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Adicionar item'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Adicionar').first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TableMenuPage), findsNothing);
+      expect(find.text('4 pedidos'), findsOneWidget);
+      expect(find.text('R\$ 84,48'), findsOneWidget);
+    });
+
     testWidgets('abre fechamento ao tocar em fechar conta', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

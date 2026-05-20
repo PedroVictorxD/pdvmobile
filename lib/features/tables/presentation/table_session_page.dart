@@ -5,20 +5,33 @@ import 'package:pdvmobile/features/tables/presentation/close_account_page.dart';
 import 'package:pdvmobile/features/tables/presentation/open_service_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_menu_page.dart';
 
-class TableSessionPage extends StatelessWidget {
+class TableSessionPage extends StatefulWidget {
   const TableSessionPage({super.key, required this.store, required this.entry});
 
   final StoreSummary store;
   final TableDashboardEntry entry;
 
   @override
+  State<TableSessionPage> createState() => _TableSessionPageState();
+}
+
+class _TableSessionPageState extends State<TableSessionPage> {
+  late TableDashboardEntry _entry;
+
+  @override
+  void initState() {
+    super.initState();
+    _entry = widget.entry;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final session = entry.session;
+    final session = _entry.session;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
       appBar: AppBar(
-        title: Text(store.name),
+        title: Text(widget.store.name),
         backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -35,7 +48,7 @@ class TableSessionPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Mesa ${entry.table.number}',
+              'Mesa ${_entry.table.number}',
               style: const TextStyle(
                 color: Color(0xFF657285),
                 fontSize: 18,
@@ -67,9 +80,9 @@ class TableSessionPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      entry.table.label.isEmpty
+                      _entry.table.label.isEmpty
                           ? 'Sem label'
-                          : entry.table.label,
+                          : _entry.table.label,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -137,17 +150,26 @@ class TableSessionPage extends StatelessWidget {
   }
 
   Future<void> _openMenu(BuildContext context) async {
-    await Navigator.of(context).push(
+    final updatedEntry = await Navigator.of(context).push<TableDashboardEntry>(
       MaterialPageRoute(
-        builder: (context) => TableMenuPage(store: store, entry: entry),
+        builder: (context) => TableMenuPage(store: widget.store, entry: _entry),
       ),
     );
+
+    if (!context.mounted || updatedEntry == null) {
+      return;
+    }
+
+    setState(() {
+      _entry = updatedEntry;
+    });
   }
 
   Future<void> _openCloseAccount(BuildContext context) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => CloseAccountPage(store: store, entry: entry),
+        builder: (context) =>
+            CloseAccountPage(store: widget.store, entry: _entry),
       ),
     );
   }
@@ -155,7 +177,8 @@ class TableSessionPage extends StatelessWidget {
   Future<void> _openService(BuildContext context) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => OpenServicePage(store: store, entry: entry),
+        builder: (context) =>
+            OpenServicePage(store: widget.store, entry: _entry),
       ),
     );
   }
