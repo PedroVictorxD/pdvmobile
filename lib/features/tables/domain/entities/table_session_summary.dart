@@ -1,3 +1,5 @@
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
+
 class TableSessionSummary {
   const TableSessionSummary({
     required this.id,
@@ -6,6 +8,7 @@ class TableSessionSummary {
     required this.status,
     required this.total,
     required this.orderCount,
+    this.items = const [],
   });
 
   final String id;
@@ -14,4 +17,5 @@ class TableSessionSummary {
   final String status;
   final double total;
   final int orderCount;
+  final List<TableSessionLineItem> items;
 }

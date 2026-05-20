@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/presentation/close_account_page.dart';
 import 'package:pdvmobile/features/tables/presentation/open_service_page.dart';
@@ -46,6 +47,7 @@ void main() {
       expect(find.text('3 pedidos'), findsOneWidget);
       expect(find.text('Adicionar item'), findsOneWidget);
       expect(find.text('Fechar conta'), findsOneWidget);
+      expect(find.text('Nenhum item lancado ainda.'), findsOneWidget);
     });
 
     testWidgets('mostra abertura de comanda quando a mesa esta livre', (
@@ -177,6 +179,58 @@ void main() {
       expect(find.byType(TableMenuPage), findsNothing);
       expect(find.text('4 pedidos'), findsOneWidget);
       expect(find.text('R\$ 84,48'), findsOneWidget);
+      expect(find.text('Coca-Cola 350ml'), findsOneWidget);
+      expect(find.text('Qtd 1 • R\$ 7,50'), findsOneWidget);
+    });
+
+    testWidgets('permite cancelar um item ja lancado na comanda', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableSessionPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: const TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 7.5,
+                orderCount: 1,
+                items: [
+                  TableSessionLineItem(
+                    name: 'Coca-Cola 350ml',
+                    quantity: 1,
+                    unitPrice: 7.5,
+                    note: 'Sem acucar',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Coca-Cola 350ml'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Coca-Cola 350ml'), findsNothing);
+      expect(find.text('0 pedidos'), findsOneWidget);
+      expect(find.text('R\$ 0,00'), findsOneWidget);
+      expect(find.text('Nenhum item lancado ainda.'), findsOneWidget);
     });
 
     testWidgets('abre fechamento ao tocar em fechar conta', (tester) async {

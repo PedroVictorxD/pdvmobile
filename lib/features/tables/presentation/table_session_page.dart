@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/presentation/close_account_page.dart';
 import 'package:pdvmobile/features/tables/presentation/open_service_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_menu_page.dart';
@@ -135,6 +137,28 @@ class _TableSessionPageState extends State<TableSessionPage> {
                 icon: Icons.point_of_sale_rounded,
                 onTap: () => _openCloseAccount(context),
               ),
+              const SizedBox(height: 18),
+              const Text(
+                'Itens lancados',
+                style: TextStyle(
+                  color: Color(0xFF172033),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (session.items.isEmpty)
+                const _EmptyItemsCard()
+              else
+                ...session.items.asMap().entries.map(
+                  (entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _SessionLineItemCard(
+                      item: entry.value,
+                      onCancel: () => _cancelItem(entry.key),
+                    ),
+                  ),
+                ),
             ] else ...[
               _SessionActionCard(
                 label: 'Abrir atendimento',
@@ -181,6 +205,45 @@ class _TableSessionPageState extends State<TableSessionPage> {
             OpenServicePage(store: widget.store, entry: _entry),
       ),
     );
+  }
+
+  void _cancelItem(int itemIndex) {
+    final session = _entry.session;
+    if (session == null || itemIndex >= session.items.length) {
+      return;
+    }
+
+    final currentItem = session.items[itemIndex];
+    final items = [...session.items];
+
+    if (currentItem.quantity > 1) {
+      items[itemIndex] = TableSessionLineItem(
+        name: currentItem.name,
+        quantity: currentItem.quantity - 1,
+        unitPrice: currentItem.unitPrice,
+        note: currentItem.note,
+      );
+    } else {
+      items.removeAt(itemIndex);
+    }
+
+    setState(() {
+      _entry = TableDashboardEntry(
+        table: _entry.table,
+        session: TableSessionSummary(
+          id: session.id,
+          tableNumber: session.tableNumber,
+          tableLabel: session.tableLabel,
+          status: session.status,
+          total: (session.total - currentItem.unitPrice).clamp(
+            0,
+            double.infinity,
+          ),
+          orderCount: session.orderCount > 0 ? session.orderCount - 1 : 0,
+          items: items,
+        ),
+      );
+    });
   }
 }
 
@@ -245,6 +308,96 @@ class _SessionActionCard extends StatelessWidget {
               const SizedBox(width: 8),
               const Icon(Icons.chevron_right_rounded, color: Color(0xFF98A1AF)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SessionLineItemCard extends StatelessWidget {
+  const _SessionLineItemCard({required this.item, required this.onCancel});
+
+  final TableSessionLineItem item;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      color: Color(0xFF172033),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  if (item.note.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      item.note,
+                      style: const TextStyle(
+                        color: Color(0xFF657285),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Qtd ${item.quantity} • ${_formatCurrency(item.totalPrice)}',
+                    style: const TextStyle(
+                      color: Color(0xFFD94E60),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            TextButton(onPressed: onCancel, child: const Text('Cancelar')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyItemsCard extends StatelessWidget {
+  const _EmptyItemsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text(
+          'Nenhum item lancado ainda.',
+          style: TextStyle(
+            color: Color(0xFF657285),
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),

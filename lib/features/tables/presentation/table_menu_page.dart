@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 
 class TableMenuPage extends StatefulWidget {
@@ -122,6 +123,31 @@ class _TableMenuPageState extends State<TableMenuPage> {
       return;
     }
 
+    final items = [...session.items];
+    final existingIndex = items.indexWhere(
+      (currentItem) =>
+          currentItem.name == item.name && currentItem.note == item.description,
+    );
+
+    if (existingIndex >= 0) {
+      final existingItem = items[existingIndex];
+      items[existingIndex] = TableSessionLineItem(
+        name: existingItem.name,
+        quantity: existingItem.quantity + 1,
+        unitPrice: existingItem.unitPrice,
+        note: existingItem.note,
+      );
+    } else {
+      items.add(
+        TableSessionLineItem(
+          name: item.name,
+          quantity: 1,
+          unitPrice: item.price,
+          note: item.description,
+        ),
+      );
+    }
+
     Navigator.of(context).pop(
       TableDashboardEntry(
         table: widget.entry.table,
@@ -132,6 +158,7 @@ class _TableMenuPageState extends State<TableMenuPage> {
           status: session.status,
           total: session.total + item.price,
           orderCount: session.orderCount + 1,
+          items: items,
         ),
       ),
     );
