@@ -175,12 +175,56 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Adicionar').first);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmar item'));
+      await tester.pumpAndSettle();
 
       expect(find.byType(TableMenuPage), findsNothing);
       expect(find.text('4 pedidos'), findsOneWidget);
       expect(find.text('R\$ 84,48'), findsOneWidget);
       expect(find.text('Coca-Cola 350ml'), findsOneWidget);
       expect(find.text('Qtd 1 • R\$ 7,50'), findsOneWidget);
+    });
+
+    testWidgets('mostra observacao personalizada no item lancado', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableSessionPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: const TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 76.98,
+                orderCount: 3,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Adicionar item'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Adicionar').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Sem gelo');
+      await tester.tap(find.text('Confirmar item'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TableMenuPage), findsNothing);
+      expect(find.text('Coca-Cola 350ml'), findsOneWidget);
+      expect(find.text('Sem gelo'), findsOneWidget);
     });
 
     testWidgets('permite cancelar um item ja lancado na comanda', (

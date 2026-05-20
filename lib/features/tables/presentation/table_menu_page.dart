@@ -108,7 +108,7 @@ class _TableMenuPageState extends State<TableMenuPage> {
             ...filteredItems.map(
               (item) => _MenuItemCard(
                 item: item,
-                onAdd: () => _addItem(context, item),
+                onAdd: () => _openItemNoteDialog(context, item),
               ),
             ),
           ],
@@ -117,7 +117,20 @@ class _TableMenuPageState extends State<TableMenuPage> {
     );
   }
 
-  void _addItem(BuildContext context, _MenuItem item) {
+  Future<void> _openItemNoteDialog(BuildContext context, _MenuItem item) async {
+    final note = await showDialog<String>(
+      context: context,
+      builder: (context) => _ItemNoteDialog(item: item),
+    );
+
+    if (!context.mounted || note == null) {
+      return;
+    }
+
+    _addItem(context, item, note);
+  }
+
+  void _addItem(BuildContext context, _MenuItem item, String note) {
     final session = widget.entry.session;
     if (session == null) {
       return;
@@ -126,7 +139,7 @@ class _TableMenuPageState extends State<TableMenuPage> {
     final items = [...session.items];
     final existingIndex = items.indexWhere(
       (currentItem) =>
-          currentItem.name == item.name && currentItem.note == item.description,
+          currentItem.name == item.name && currentItem.note == note,
     );
 
     if (existingIndex >= 0) {
@@ -143,7 +156,7 @@ class _TableMenuPageState extends State<TableMenuPage> {
           name: item.name,
           quantity: 1,
           unitPrice: item.price,
-          note: item.description,
+          note: note,
         ),
       );
     }
@@ -228,6 +241,71 @@ class _MenuItemCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ItemNoteDialog extends StatefulWidget {
+  const _ItemNoteDialog({required this.item});
+
+  final _MenuItem item;
+
+  @override
+  State<_ItemNoteDialog> createState() => _ItemNoteDialogState();
+}
+
+class _ItemNoteDialogState extends State<_ItemNoteDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.item.description);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Observacoes do item'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.item.name,
+            style: const TextStyle(
+              color: Color(0xFF172033),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              hintText: 'Ex.: sem gelo, tirar cebola',
+            ),
+            maxLines: 2,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop(_controller.text.trim());
+          },
+          child: const Text('Confirmar item'),
+        ),
+      ],
     );
   }
 }
