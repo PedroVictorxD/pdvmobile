@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
 import 'package:pdvmobile/features/tables/presentation/close_account_page.dart';
+import 'package:pdvmobile/features/tables/presentation/open_service_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_menu_page.dart';
 
 class TableSessionPage extends StatelessWidget {
@@ -126,10 +127,7 @@ class TableSessionPage extends StatelessWidget {
                 label: 'Abrir atendimento',
                 description: 'Inicia a comanda e libera o fluxo de pedidos.',
                 icon: Icons.play_circle_fill_rounded,
-                onTap: () => _showComingSoon(
-                  context,
-                  'A abertura efetiva da comanda entra na proxima etapa.',
-                ),
+                onTap: () => _openService(context),
               ),
               const SizedBox(height: 12),
               _SessionActionCard(
@@ -166,6 +164,14 @@ class TableSessionPage extends StatelessWidget {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => CloseAccountPage(store: store, entry: entry),
+      ),
+    );
+  }
+
+  Future<void> _openService(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => OpenServicePage(store: store, entry: entry),
       ),
     );
   }

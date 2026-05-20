@@ -5,6 +5,7 @@ import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/presentation/close_account_page.dart';
+import 'package:pdvmobile/features/tables/presentation/open_service_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_menu_page.dart';
 import 'package:pdvmobile/features/tables/presentation/table_session_page.dart';
 
@@ -74,6 +75,35 @@ void main() {
       expect(find.text('Mesa 1'), findsOneWidget);
       expect(find.text('Abrir atendimento'), findsOneWidget);
       expect(find.text('Escanear QR da mesa'), findsOneWidget);
+    });
+
+    testWidgets('abre fluxo de atendimento ao tocar em abrir atendimento', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TableSessionPage(
+            store: _store,
+            entry: TableDashboardEntry(
+              table: const StoreTable(
+                id: 'table-1',
+                number: 1,
+                label: 'Varanda',
+                status: 'AVAILABLE',
+                qrCodeToken: 'qr-1',
+              ),
+              session: null,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Abrir atendimento'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OpenServicePage), findsOneWidget);
+      expect(find.text('Iniciar comanda'), findsOneWidget);
     });
 
     testWidgets('abre catalogo ao tocar em adicionar item', (tester) async {
