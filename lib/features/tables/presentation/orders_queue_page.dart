@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
 
-class OrdersQueuePage extends StatelessWidget {
+class OrdersQueuePage extends StatefulWidget {
   const OrdersQueuePage({
     super.key,
     required this.store,
@@ -13,13 +14,32 @@ class OrdersQueuePage extends StatelessWidget {
   final List<TableDashboardEntry> entries;
 
   @override
+  State<OrdersQueuePage> createState() => _OrdersQueuePageState();
+}
+
+class _OrdersQueuePageState extends State<OrdersQueuePage> {
+  bool _showDelivered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final sessions = entries.where((entry) => entry.session != null).toList();
+    final queueItems = widget.entries
+        .where((entry) => entry.session != null)
+        .expand(
+          (entry) => entry.session!.items.map(
+            (item) => _OrderQueueItem(entry: entry, item: item),
+          ),
+        )
+        .where(
+          (queueItem) => _showDelivered
+              ? queueItem.item.status == TableSessionLineItemStatus.delivered
+              : queueItem.item.status != TableSessionLineItemStatus.delivered,
+        )
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
       appBar: AppBar(
-        title: Text(store.name),
+        title: Text(widget.store.name),
         backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -35,12 +55,24 @@ class OrdersQueuePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const _OrdersSectionHeader(),
+            _OrdersSectionHeader(
+              showDelivered: _showDelivered,
+              onSelectPending: () {
+                setState(() {
+                  _showDelivered = false;
+                });
+              },
+              onSelectDelivered: () {
+                setState(() {
+                  _showDelivered = true;
+                });
+              },
+            ),
             const SizedBox(height: 18),
-            if (sessions.isEmpty)
-              const _OrdersEmptyState()
+            if (queueItems.isEmpty)
+              _OrdersEmptyState(showDelivered: _showDelivered)
             else
-              ...sessions.map((entry) => _OrderSessionCard(entry: entry)),
+              ...queueItems.map((queueItem) => _OrderItemCard(item: queueItem)),
           ],
         ),
       ),
@@ -49,49 +81,33 @@ class OrdersQueuePage extends StatelessWidget {
 }
 
 class _OrdersSectionHeader extends StatelessWidget {
-  const _OrdersSectionHeader();
+  const _OrdersSectionHeader({
+    required this.showDelivered,
+    required this.onSelectPending,
+    required this.onSelectDelivered,
+  });
+
+  final bool showDelivered;
+  final VoidCallback onSelectPending;
+  final VoidCallback onSelectDelivered;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.all(Radius.circular(999)),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                'Pendentes',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFFD94E60),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          child: _QueueTab(
+            label: 'Pendentes',
+            selected: !showDelivered,
+            onTap: onSelectPending,
           ),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Color(0xFFEFF3F8),
-              borderRadius: BorderRadius.all(Radius.circular(999)),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                'Entregues',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF657285),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          child: _QueueTab(
+            label: 'Entregues',
+            selected: showDelivered,
+            onTap: onSelectDelivered,
           ),
         ),
       ],
@@ -99,15 +115,50 @@ class _OrdersSectionHeader extends StatelessWidget {
   }
 }
 
-class _OrderSessionCard extends StatelessWidget {
-  const _OrderSessionCard({required this.entry});
+class _QueueTab extends StatelessWidget {
+  const _QueueTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
-  final TableDashboardEntry entry;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final session = entry.session!;
+    return Material(
+      color: selected ? Colors.white : const Color(0xFFEFF3F8),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected
+                  ? const Color(0xFFD94E60)
+                  : const Color(0xFF657285),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
+class _OrderItemCard extends StatelessWidget {
+  const _OrderItemCard({required this.item});
+
+  final _OrderQueueItem item;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: DecoratedBox(
@@ -144,7 +195,7 @@ class _OrderSessionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mesa ${entry.table.number}',
+                      item.item.name,
                       style: const TextStyle(
                         color: Color(0xFF172033),
                         fontSize: 16,
@@ -153,15 +204,25 @@ class _OrderSessionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      entry.table.label,
+                      'Mesa ${item.entry.table.number} • ${item.entry.table.label}',
                       style: const TextStyle(
                         color: Color(0xFF657285),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    if (item.item.note.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.item.note,
+                        style: const TextStyle(
+                          color: Color(0xFF657285),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Text(
-                      '${session.orderCount} itens',
+                      'Qtd ${item.item.quantity} • ${_formatCurrency(item.item.totalPrice)}',
                       style: const TextStyle(
                         color: Color(0xFF172033),
                         fontWeight: FontWeight.w800,
@@ -171,26 +232,17 @@ class _OrderSessionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _formatCurrency(session.total),
-                    style: const TextStyle(
-                      color: Color(0xFFD94E60),
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _sessionStatusLabel(session.status),
-                    style: const TextStyle(
-                      color: Color(0xFF657285),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+              Text(
+                _statusLabel(item.item.status),
+                style: TextStyle(
+                  color: item.item.status == TableSessionLineItemStatus.pending
+                      ? const Color(0xFFD94E60)
+                      : item.item.status == TableSessionLineItemStatus.preparing
+                      ? const Color(0xFFF29F05)
+                      : const Color(0xFF16B8D0),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
@@ -201,20 +253,24 @@ class _OrderSessionCard extends StatelessWidget {
 }
 
 class _OrdersEmptyState extends StatelessWidget {
-  const _OrdersEmptyState();
+  const _OrdersEmptyState({required this.showDelivered});
+
+  final bool showDelivered;
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
+    return DecoratedBox(
+      decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.all(Radius.circular(24)),
       ),
       child: Padding(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         child: Text(
-          'Nenhuma comanda aberta para acompanhamento no momento.',
-          style: TextStyle(
+          showDelivered
+              ? 'Nenhum item entregue para acompanhamento no momento.'
+              : 'Nenhum item pendente ou em preparo no momento.',
+          style: const TextStyle(
             color: Color(0xFF657285),
             fontWeight: FontWeight.w700,
           ),
@@ -224,18 +280,22 @@ class _OrdersEmptyState extends StatelessWidget {
   }
 }
 
+class _OrderQueueItem {
+  const _OrderQueueItem({required this.entry, required this.item});
+
+  final TableDashboardEntry entry;
+  final TableSessionLineItem item;
+}
+
 String _formatCurrency(double value) {
   final formatted = value.toStringAsFixed(2).replaceAll('.', ',');
   return 'R\$ $formatted';
 }
 
-String _sessionStatusLabel(String status) {
-  switch (status) {
-    case 'CLOSE_REQUESTED':
-      return 'Fechamento solicitado';
-    case 'CLOSED':
-      return 'Fechada';
-    default:
-      return 'Aberta';
-  }
+String _statusLabel(TableSessionLineItemStatus status) {
+  return switch (status) {
+    TableSessionLineItemStatus.pending => 'Pendente',
+    TableSessionLineItemStatus.preparing => 'Em preparo',
+    TableSessionLineItemStatus.delivered => 'Entregue',
+  };
 }

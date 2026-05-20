@@ -4,6 +4,7 @@ import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
 import 'package:pdvmobile/features/tables/presentation/cashier_review_page.dart';
@@ -77,7 +78,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(OrdersQueuePage), findsOneWidget);
-    expect(find.text('Mesa 2'), findsOneWidget);
+    expect(find.text('Coca-Cola 350ml'), findsOneWidget);
+    expect(find.text('Mesa 2 • Salao'), findsWidgets);
   });
 
   testWidgets('abre pagamentos pix pela barra inferior', (tester) async {
@@ -242,6 +244,22 @@ final class _FakeTableRepository implements TableRepository {
         status: 'CLOSE_REQUESTED',
         total: 58,
         orderCount: 2,
+        items: [
+          TableSessionLineItem(
+            name: 'Coca-Cola 350ml',
+            quantity: 1,
+            unitPrice: 7.5,
+            note: 'Sem gelo',
+            status: TableSessionLineItemStatus.pending,
+          ),
+          TableSessionLineItem(
+            name: 'Coxinha Crocante',
+            quantity: 1,
+            unitPrice: 12,
+            note: 'Frango cremoso',
+            status: TableSessionLineItemStatus.preparing,
+          ),
+        ],
       ),
     ];
   }
