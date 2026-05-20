@@ -64,8 +64,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Pedidos'), findsOneWidget);
-    expect(find.text('Pendentes'), findsOneWidget);
-    expect(find.text('Entregues'), findsOneWidget);
+    expect(find.text('Pendentes 2'), findsOneWidget);
+    expect(find.text('Entregues 1'), findsOneWidget);
     expect(find.text('Mesa 5 • Salao'), findsWidgets);
     expect(find.text('Coca-Cola 350ml'), findsOneWidget);
     expect(find.text('Coxinha Crocante'), findsOneWidget);
@@ -121,7 +121,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Entregues'));
+    await tester.tap(find.text('Entregues 1'));
     await tester.pumpAndSettle();
 
     expect(find.text('Suco de Caja 300ml'), findsOneWidget);
@@ -221,11 +221,73 @@ void main() {
 
     expect(find.text('Coxinha Crocante'), findsNothing);
 
-    await tester.tap(find.text('Entregues'));
+    await tester.tap(find.text('Entregues 1'));
     await tester.pumpAndSettle();
 
     expect(find.text('Coxinha Crocante'), findsOneWidget);
     expect(find.text('Entregue'), findsOneWidget);
+  });
+
+  testWidgets('atualiza contadores das abas ao avancar itens', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OrdersQueuePage(
+          store: _store,
+          entries: const [
+            TableDashboardEntry(
+              table: StoreTable(
+                id: 'table-2',
+                number: 5,
+                label: 'Salao',
+                status: 'OCCUPIED',
+                qrCodeToken: 'qr-2',
+              ),
+              session: TableSessionSummary(
+                id: 'session-1',
+                tableNumber: 5,
+                tableLabel: 'Salao',
+                status: 'OPEN',
+                total: 76.98,
+                orderCount: 2,
+                items: [
+                  TableSessionLineItem(
+                    name: 'Coca-Cola 350ml',
+                    quantity: 1,
+                    unitPrice: 7.5,
+                    note: 'Sem gelo',
+                    status: TableSessionLineItemStatus.pending,
+                  ),
+                  TableSessionLineItem(
+                    name: 'Coxinha Crocante',
+                    quantity: 1,
+                    unitPrice: 12,
+                    note: 'Frango cremoso',
+                    status: TableSessionLineItemStatus.preparing,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pendentes 2'), findsOneWidget);
+    expect(find.text('Entregues 0'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('advance_queue_item_0')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pendentes 2'), findsOneWidget);
+    expect(find.text('Entregues 0'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('advance_queue_item_1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pendentes 1'), findsOneWidget);
+    expect(find.text('Entregues 1'), findsOneWidget);
   });
 }
 

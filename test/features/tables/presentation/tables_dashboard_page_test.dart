@@ -4,6 +4,7 @@ import 'package:pdvmobile/features/auth/domain/entities/auth_session.dart';
 import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
 import 'package:pdvmobile/features/tables/presentation/tables_dashboard_page.dart';
@@ -59,6 +60,27 @@ void main() {
       expect(find.text('Imprimir'), findsOneWidget);
       expect(find.text('Caixa'), findsOneWidget);
       expect(find.text('Reabrir'), findsOneWidget);
+    });
+
+    testWidgets('mostra badge de pedidos com itens ainda nao entregues', (
+      tester,
+    ) async {
+      final repository = _FakeTableRepository();
+
+      await tester.pumpWidget(_buildApp(repository));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('bottom_badge_Pedidos')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('bottom_badge_Pedidos')),
+          matching: find.text('2'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('reabre comanda fechada pela aba fechadas', (tester) async {
@@ -136,7 +158,30 @@ final class _FakeTableRepository implements TableRepository {
         tableLabel: 'Salao interno',
         status: 'CLOSE_REQUESTED',
         total: 58,
-        orderCount: 2,
+        orderCount: 3,
+        items: [
+          TableSessionLineItem(
+            name: 'Coca-Cola 350ml',
+            quantity: 1,
+            unitPrice: 7.5,
+            note: 'Sem gelo',
+            status: TableSessionLineItemStatus.pending,
+          ),
+          TableSessionLineItem(
+            name: 'Coxinha Crocante',
+            quantity: 1,
+            unitPrice: 12,
+            note: 'Frango cremoso',
+            status: TableSessionLineItemStatus.preparing,
+          ),
+          TableSessionLineItem(
+            name: 'Suco de Caja 300ml',
+            quantity: 1,
+            unitPrice: 9,
+            note: 'Natural e gelado',
+            status: TableSessionLineItemStatus.delivered,
+          ),
+        ],
       ),
     ];
   }

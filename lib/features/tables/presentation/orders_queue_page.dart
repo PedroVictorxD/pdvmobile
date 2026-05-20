@@ -29,6 +29,28 @@ class _OrdersQueuePageState extends State<OrdersQueuePage> {
 
   @override
   Widget build(BuildContext context) {
+    final pendingCount = _entries.fold<int>(0, (sum, entry) {
+      final session = entry.session;
+      if (session == null) {
+        return sum;
+      }
+
+      return sum +
+          session.items.where((item) {
+            return item.status != TableSessionLineItemStatus.delivered;
+          }).length;
+    });
+    final deliveredCount = _entries.fold<int>(0, (sum, entry) {
+      final session = entry.session;
+      if (session == null) {
+        return sum;
+      }
+
+      return sum +
+          session.items.where((item) {
+            return item.status == TableSessionLineItemStatus.delivered;
+          }).length;
+    });
     final queueItems = _entries
         .where((entry) => entry.session != null)
         .expand(
@@ -68,6 +90,8 @@ class _OrdersQueuePageState extends State<OrdersQueuePage> {
             const SizedBox(height: 16),
             _OrdersSectionHeader(
               showDelivered: _showDelivered,
+              pendingCount: pendingCount,
+              deliveredCount: deliveredCount,
               onSelectPending: () {
                 setState(() {
                   _showDelivered = false;
@@ -143,11 +167,15 @@ class _OrdersQueuePageState extends State<OrdersQueuePage> {
 class _OrdersSectionHeader extends StatelessWidget {
   const _OrdersSectionHeader({
     required this.showDelivered,
+    required this.pendingCount,
+    required this.deliveredCount,
     required this.onSelectPending,
     required this.onSelectDelivered,
   });
 
   final bool showDelivered;
+  final int pendingCount;
+  final int deliveredCount;
   final VoidCallback onSelectPending;
   final VoidCallback onSelectDelivered;
 
@@ -157,7 +185,7 @@ class _OrdersSectionHeader extends StatelessWidget {
       children: [
         Expanded(
           child: _QueueTab(
-            label: 'Pendentes',
+            label: 'Pendentes $pendingCount',
             selected: !showDelivered,
             onTap: onSelectPending,
           ),
@@ -165,7 +193,7 @@ class _OrdersSectionHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _QueueTab(
-            label: 'Entregues',
+            label: 'Entregues $deliveredCount',
             selected: showDelivered,
             onTap: onSelectDelivered,
           ),

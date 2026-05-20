@@ -4,6 +4,7 @@ import 'package:pdvmobile/features/stores/domain/entities/store_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/closed_table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/entities/store_table.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_dashboard_entry.dart';
+import 'package:pdvmobile/features/tables/domain/entities/table_session_line_item.dart';
 import 'package:pdvmobile/features/tables/domain/entities/table_session_summary.dart';
 import 'package:pdvmobile/features/tables/domain/repositories/table_repository.dart';
 import 'package:pdvmobile/features/tables/presentation/cashier_review_page.dart';
@@ -60,10 +61,7 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
         final dashboardData = snapshot.data ?? const _DashboardData.empty();
         final entries = dashboardData.entries;
         final closedSessions = dashboardData.closedSessions;
-        final pendingOrdersCount = entries.fold<int>(
-          0,
-          (sum, entry) => sum + (entry.session?.orderCount ?? 0),
-        );
+        final pendingOrdersCount = _pendingOrdersCount(entries);
 
         return Scaffold(
           backgroundColor: const Color(0xFFF4F7FB),
@@ -442,6 +440,24 @@ class _TablesDashboardPageState extends State<TablesDashboardPage> {
 
   String _tableKey(StoreTable table) {
     return table.number.toString();
+  }
+
+  int _pendingOrdersCount(List<TableDashboardEntry> entries) {
+    return entries.fold<int>(0, (sum, entry) {
+      final session = entry.session;
+      if (session == null) {
+        return sum;
+      }
+
+      if (session.items.isEmpty) {
+        return sum + session.orderCount;
+      }
+
+      return sum +
+          session.items.where((item) {
+            return item.status != TableSessionLineItemStatus.delivered;
+          }).length;
+    });
   }
 }
 
@@ -1117,6 +1133,7 @@ class _DashboardBottomBar extends StatelessWidget {
                 label: 'Pedidos',
                 icon: Icons.receipt_long_rounded,
                 badgeCount: pendingOrdersCount,
+                badgeKey: const ValueKey('bottom_badge_Pedidos'),
                 selected: selectedItem == _BottomNavItem.orders,
                 onTap: () => onSelected(_BottomNavItem.orders),
               ),
@@ -1151,6 +1168,7 @@ class _BottomBarButton extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.badgeCount = 0,
+    this.badgeKey,
   });
 
   final String label;
@@ -1158,6 +1176,7 @@ class _BottomBarButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final int badgeCount;
+  final Key? badgeKey;
 
   @override
   Widget build(BuildContext context) {
@@ -1201,6 +1220,7 @@ class _BottomBarButton extends StatelessWidget {
                         right: -10,
                         top: -8,
                         child: Container(
+                          key: badgeKey,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
                             vertical: 2,
